@@ -15,11 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexum — Life Management System",
+  title: "Nexus — Life Management System",
   description: "Manage your tasks, notes, calendar, and finances in one place",
-  icons: {
-    icon: "/nexum-logo.svg",
-  },
 };
 
 export const viewport: Viewport = {
