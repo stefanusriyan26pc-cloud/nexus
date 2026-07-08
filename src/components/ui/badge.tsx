@@ -5,7 +5,7 @@ const variants = {
   success: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400",
   warning: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400",
   danger: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400",
-  info: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400",
+  info: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400",
 };
 
 export function Badge({

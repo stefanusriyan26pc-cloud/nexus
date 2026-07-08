@@ -57,7 +57,7 @@ export function TaskList({
     <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
       {tasks.map((task) => (
         <div key={task.id} className="flex items-center gap-4 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-          <button onClick={() => toggleDone(task)} className="shrink-0 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400">
+          <button onClick={() => toggleDone(task)} className="shrink-0 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
             {task.status === "done" ? (
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             ) : (

@@ -100,7 +100,7 @@ export function TaskCalendar({
               <span
                 className={cn(
                   "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs",
-                  isToday(day) && "bg-indigo-600 font-semibold text-white",
+                  isToday(day) && "bg-blue-600 font-semibold text-white",
                   !isToday(day) && inMonth && "text-slate-700 dark:text-slate-300",
                   !inMonth && "text-slate-300 dark:text-slate-600"
                 )}
@@ -112,7 +112,7 @@ export function TaskCalendar({
                   <button
                     key={task.id}
                     onClick={() => onEdit(task)}
-                    className="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                    className="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-xs hover:bg-blue-50 dark:hover:bg-blue-950/40"
                   >
                     <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", priorityDot[task.priority])} />
                     <span className="truncate text-slate-700 dark:text-slate-300">{task.title}</span>

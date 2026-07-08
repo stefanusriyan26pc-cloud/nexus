@@ -141,7 +141,7 @@ export default function RegisterPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="h-11 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:from-indigo-700 hover:to-violet-700"
+            className="h-11 w-full rounded-xl bg-linear-to-r from-blue-600 to-cyan-500 text-sm font-semibold shadow-lg shadow-blue-500/25 hover:from-blue-700 hover:to-cyan-600"
           >
             {loading ? (
               <>
@@ -158,7 +158,7 @@ export default function RegisterPage() {
           {t("auth.hasAccount")}{" "}
           <Link
             href="/login"
-            className="font-semibold text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+            className="font-semibold text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
           >
             {t("auth.signIn")}
           </Link>

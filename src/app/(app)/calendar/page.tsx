@@ -29,11 +29,13 @@ import {
   parseISO,
   startOfMonth,
   startOfWeek,
+  addWeeks,
+  subWeeks,
 } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, List, Plus, Search, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, List, Plus, Search, Trash2, LayoutList } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-type View = "calendar" | "list";
+type View = "calendar" | "week" | "list";
 
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
@@ -152,6 +154,9 @@ export default function CalendarPage() {
     setModalOpen(false);
   };
 
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekDays = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
+
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calStart = startOfWeek(monthStart);
@@ -179,7 +184,8 @@ export default function CalendarPage() {
             <ViewToggle
               views={[
                 { id: "calendar" as View, label: t("calendar.calendarView"), icon: CalendarDays },
-                { id: "list" as View, label: t("calendar.listView"), icon: List },
+                { id: "week" as View,     label: t("calendar.weekView"),     icon: LayoutList },
+                { id: "list" as View,     label: t("calendar.listView"),     icon: List },
               ]}
               active={view}
               onChange={setView}
@@ -259,15 +265,15 @@ export default function CalendarPage() {
                   <div
                     key={day.toISOString()}
                     className={cn(
-                      "min-h-[110px] border-b border-r border-slate-100 p-2 dark:border-slate-800",
+                      "min-h-27.5 border-b border-r border-slate-100 p-2 dark:border-slate-800",
                       !inMonth && "bg-slate-50/50 dark:bg-slate-950/50"
                     )}
                   >
                     <button
                       onClick={() => openCreate(day)}
                       className={cn(
-                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/40",
-                        isToday(day) && "bg-indigo-600 font-semibold text-white hover:bg-indigo-700",
+                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs hover:bg-blue-50 dark:hover:bg-blue-950/40",
+                        isToday(day) && "bg-blue-600 font-semibold text-white hover:bg-blue-700",
                         !isToday(day) && inMonth && "text-slate-700 dark:text-slate-300",
                         !inMonth && "text-slate-300 dark:text-slate-600"
                       )}
@@ -285,6 +291,60 @@ export default function CalendarPage() {
                           {event.title}
                         </button>
                       ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : view === "week" ? (
+          /* ── Week view ─────────────────────────────────────────── */
+          <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                {format(weekStart, "MMM d")} – {format(addDays(weekStart, 6), "MMM d, yyyy")}
+              </h2>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={() => setCurrentDate(subWeeks(currentDate, 1))} className="h-8 w-8 p-0">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>{t("calendar.today")}</Button>
+                <Button variant="ghost" size="sm" onClick={() => setCurrentDate(addWeeks(currentDate, 1))} className="h-8 w-8 p-0">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-7 divide-x divide-slate-100 dark:divide-slate-800">
+              {weekDays.map((day) => {
+                const dayEvents = eventsForDay(day);
+                const todayDay = isToday(day);
+                return (
+                  <div key={day.toISOString()} className="flex min-h-45 flex-col">
+                    <div className={cn(
+                      "flex flex-col items-center gap-0.5 border-b border-slate-100 py-3 text-center text-xs font-medium dark:border-slate-800",
+                      todayDay && "bg-blue-50 dark:bg-blue-950/30"
+                    )}>
+                      <span className="uppercase tracking-wide text-slate-500 dark:text-slate-400">{format(day, "EEE")}</span>
+                      <span className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-full text-sm",
+                        todayDay ? "bg-blue-600 font-bold text-white" : "text-slate-700 dark:text-slate-300"
+                      )}>
+                        {format(day, "d")}
+                      </span>
+                    </div>
+                    <div className="flex-1 space-y-1 p-1.5">
+                      {dayEvents.map((event) => (
+                        <button key={event.id} onClick={() => openEdit(event)}
+                          className="block w-full rounded-lg px-2 py-1.5 text-left text-xs text-white shadow-sm hover:opacity-90"
+                          style={{ backgroundColor: event.color }}
+                        >
+                          <p className="truncate font-medium">{event.title}</p>
+                          <p className="truncate opacity-80">{format(parseISO(event.start_at), "h:mm a")}</p>
+                        </button>
+                      ))}
+                      <button onClick={() => openCreate(day)}
+                        className="block w-full rounded px-1 py-0.5 text-center text-xs text-slate-300 hover:bg-slate-50 hover:text-blue-500 dark:text-slate-700 dark:hover:bg-slate-800"
+                      >+</button>
                     </div>
                   </div>
                 );
@@ -349,7 +409,7 @@ export default function CalendarPage() {
                 <button
                   key={c}
                   onClick={() => setForm({ ...form, color: c })}
-                  className={cn("h-7 w-7 rounded-full", form.color === c && "ring-2 ring-offset-2 ring-indigo-500")}
+                  className={cn("h-7 w-7 rounded-full", form.color === c && "ring-2 ring-offset-2 ring-blue-500")}
                   style={{ backgroundColor: c }}
                 />
               ))}

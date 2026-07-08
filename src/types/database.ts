@@ -7,6 +7,8 @@ export interface Profile {
   email: string | null;
   full_name: string | null;
   avatar_url: string | null;
+  bio: string | null;
+  location: string | null;
   currency: string;
   language: string;
   created_at: string;
@@ -32,6 +34,7 @@ export interface Note {
   title: string;
   content: string;
   is_pinned: boolean;
+  category: string;
   created_at: string;
   updated_at: string;
 }
@@ -65,6 +68,7 @@ export interface FinanceTransaction {
   id: string;
   user_id: string;
   wallet_id: string | null;
+  goal_id: string | null;
   type: TransactionType;
   amount: number;
   category: string | null;
@@ -81,6 +85,8 @@ export interface SavingsGoal {
   current_amount: number;
   deadline: string | null;
   color: string;
+  currency: string;
+  exchange_rate: number;
   created_at: string;
   updated_at: string;
 }

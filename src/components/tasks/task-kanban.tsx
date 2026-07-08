@@ -81,7 +81,7 @@ function SortableTask({
 
 function TaskCardOverlay({ task }: { task: Task }) {
   return (
-    <div className="rotate-1 rounded-lg border border-indigo-300 bg-white p-3 shadow-lg dark:border-indigo-600 dark:bg-slate-800">
+    <div className="rotate-1 rounded-lg border border-blue-300 bg-white p-3 shadow-lg dark:border-blue-600 dark:bg-slate-800">
       <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{task.title}</p>
     </div>
   );

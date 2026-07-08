@@ -147,26 +147,30 @@ function buildTasks(userId) {
 
 function buildNotes(userId) {
   return [
-    { title: "Weekly Goals", content: "• Finish client presentation\n• Exercise 4x this week\n• Save Rp 2.000.000\n• Read 3 chapters\n• No social media after 9 PM", pinned: true },
-    { title: "Meeting Notes — Product Sync", content: "Attendees: Rina, Budi, Max\n\nKey decisions:\n- Launch beta in July\n- Focus on mobile-first UX\n- Budget approved: Rp 85jt\n\nAction items:\n- Max: wireframes by Friday\n- Rina: user research summary", pinned: true },
-    { title: "Book Recommendations", content: "1. Deep Work — Cal Newport\n2. The Psychology of Money\n3. Build — Tony Fadell\n4. Shoe Dog — Phil Knight\n5. Zero to One — Peter Thiel", pinned: false },
-    { title: "Grocery List", content: "Indomie goreng x5\nBerries\nGreek yogurt\nOlive oil\nChicken breast 1kg\nSpinach\nGarlic\nOat milk", pinned: false },
-    { title: "App Ideas", content: "• Habit tracker with streaks\n• Local restaurant discovery\n• Personal finance dashboard (like Nexum!)\n• Plant watering reminder\n• Study pomodoro with analytics", pinned: false },
-    { title: "Travel — Bandung Itinerary", content: "Day 1: Arrive, check-in hotel, dinner at Sudirman street food\nDay 2: Tangkuban Perahu, Ciwidey strawberry farm\nDay 3: Braga walk, coffee at Kopi Toko Djawa, return\n\nBudget: ~Rp 3.500.000 for 2 people", pinned: false },
-    { title: "Password Manager Recovery Codes", content: "Store in safe — backup codes location: home safe drawer #2\n\n(Never store actual passwords in notes!)", pinned: true },
-    { title: "Workout Plan", content: "Mon: Run 5km\nTue: Upper body (push/pull)\nWed: Rest or yoga\nThu: Run 5km\nFri: Lower body\nSat: HIIT 20 min\nSun: Long walk", pinned: false },
-    { title: "Quotes to Remember", content: "\"The secret of getting ahead is getting started.\" — Mark Twain\n\n\"Do not save what is left after spending, but spend what is left after saving.\" — Warren Buffett", pinned: false },
-    { title: "Home Improvement Wishlist", content: "• Standing desk\n• Better monitor arm\n• Air purifier for bedroom\n• Smart lights in living room\n• Bookshelf for office", pinned: false },
-    { title: "Client A — Project Scope", content: "Phase 1: Discovery (done)\nPhase 2: Design system (in progress)\nPhase 3: Development\nPhase 4: QA & launch\n\nTotal: Rp 45.000.000 over 3 months", pinned: false },
-    { title: "Learning — TypeScript Tips", content: "• Use discriminated unions for state machines\n• Prefer unknown over any\n• satisfies operator for type narrowing\n• Generic constraints with extends", pinned: false },
-    { title: "Random Thoughts", content: "Should try waking up at 6 AM consistently for a month.\n\nIndonesian coffee culture is underrated — explore more local roasters.", pinned: false },
-    { title: "Monthly Review Template", content: "Wins:\n-\n\nLosses/Lessons:\n-\n\nNext month focus:\n1.\n2.\n3.", pinned: false },
-    { title: "Gift Ideas", content: "Sarah — Kindle / books\nDad — Fishing gear\nMom — Spa voucher\nBudi — Craft beer set", pinned: false },
+    { title: "Weekly Goals",                  cat: "Personal",  content: "• Finish client presentation\n• Exercise 4x this week\n• Save Rp 2.000.000\n• Read 3 chapters\n• No social media after 9 PM", pinned: true },
+    { title: "Meeting Notes — Product Sync",   cat: "Work",      content: "Attendees: Rina, Budi, Max\n\nKey decisions:\n- Launch beta in July\n- Focus on mobile-first UX\n- Budget approved: Rp 85jt\n\nAction items:\n- Max: wireframes by Friday\n- Rina: user research summary", pinned: true },
+    { title: "Book Recommendations",           cat: "Learning",  content: "1. Deep Work — Cal Newport\n2. The Psychology of Money\n3. Build — Tony Fadell\n4. Shoe Dog — Phil Knight\n5. Zero to One — Peter Thiel", pinned: false },
+    { title: "Grocery List",                   cat: "Personal",  content: "Indomie goreng x5\nBerries\nGreek yogurt\nOlive oil\nChicken breast 1kg\nSpinach\nGarlic\nOat milk", pinned: false },
+    { title: "App Ideas",                      cat: "Work",      content: "• Habit tracker with streaks\n• Local restaurant discovery\n• Personal finance dashboard (like Nexum!)\n• Plant watering reminder\n• Study pomodoro with analytics", pinned: false },
+    { title: "Travel — Bandung Itinerary",     cat: "Travel",    content: "Day 1: Arrive, check-in hotel, dinner at Sudirman street food\nDay 2: Tangkuban Perahu, Ciwidey strawberry farm\nDay 3: Braga walk, coffee at Kopi Toko Djawa, return\n\nBudget: ~Rp 3.500.000 for 2 people", pinned: false },
+    { title: "Password Manager Recovery Codes",cat: "Personal",  content: "Store in safe — backup codes location: home safe drawer #2\n\n(Never store actual passwords in notes!)", pinned: true },
+    { title: "Workout Plan",                   cat: "Health",    content: "Mon: Run 5km\nTue: Upper body (push/pull)\nWed: Rest or yoga\nThu: Run 5km\nFri: Lower body\nSat: HIIT 20 min\nSun: Long walk", pinned: false },
+    { title: "Quotes to Remember",             cat: "Personal",  content: "\"The secret of getting ahead is getting started.\" — Mark Twain\n\n\"Do not save what is left after spending, but spend what is left after saving.\" — Warren Buffett", pinned: false },
+    { title: "Home Improvement Wishlist",      cat: "Personal",  content: "• Standing desk\n• Better monitor arm\n• Air purifier for bedroom\n• Smart lights in living room\n• Bookshelf for office", pinned: false },
+    { title: "Client A — Project Scope",       cat: "Work",      content: "Phase 1: Discovery (done)\nPhase 2: Design system (in progress)\nPhase 3: Development\nPhase 4: QA & launch\n\nTotal: Rp 45.000.000 over 3 months", pinned: false },
+    { title: "Learning — TypeScript Tips",     cat: "Learning",  content: "• Use discriminated unions for state machines\n• Prefer unknown over any\n• satisfies operator for type narrowing\n• Generic constraints with extends", pinned: false },
+    { title: "Random Thoughts",                cat: "Personal",  content: "Should try waking up at 6 AM consistently for a month.\n\nIndonesian coffee culture is underrated — explore more local roasters.", pinned: false },
+    { title: "Monthly Review Template",        cat: "Work",      content: "Wins:\n-\n\nLosses/Lessons:\n-\n\nNext month focus:\n1.\n2.\n3.", pinned: false },
+    { title: "Gift Ideas",                     cat: "Personal",  content: "Sarah — Kindle / books\nDad — Fishing gear\nMom — Spa voucher\nBudi — Craft beer set", pinned: false },
+    { title: "Japan Trip Budget",              cat: "Travel",    content: "Flight: $420 (return)\nHotel 7 nights: $600\nFood daily: $50\nActivities: $300\nSouvenirs: $150\n\nTotal: ~$1,620 (≈ Rp 26jt)\n\nSaving target: $2,000", pinned: false },
+    { title: "SQL Cheatsheet",                 cat: "Learning",  content: "SELECT * FROM table WHERE condition\nJOIN ON table.id = other.id\nGROUP BY column HAVING count > 1\nCTE: WITH cte AS (SELECT ...)\nWindow: ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)", pinned: false },
+    { title: "Healthy Meal Ideas",             cat: "Health",    content: "Breakfast: Overnight oats + berries\nLunch: Grilled chicken + salad\nDinner: Salmon + steamed veg\nSnack: Greek yogurt + nuts\n\nAvoid: Late night sugar, excessive coffee after 2pm", pinned: false },
   ].map((n) => ({
     user_id: userId,
     title: n.title,
     content: n.content,
     is_pinned: n.pinned,
+    category: n.cat ?? "General",
   }));
 }
 
@@ -216,24 +220,28 @@ function buildCalendarEvents(userId) {
 
 function buildWallets(userId) {
   return [
-    { user_id: userId, name: "BCA Savings", balance: 18500000, color: "#6366f1", icon: "wallet" },
-    { user_id: userId, name: "GoPay", balance: 1250000, color: "#10b981", icon: "wallet" },
-    { user_id: userId, name: "Cash", balance: 850000, color: "#f59e0b", icon: "wallet" },
-    { user_id: userId, name: "OVO", balance: 620000, color: "#8b5cf6", icon: "wallet" },
+    { user_id: userId, name: "BCA Savings",    balance: 18500000, currency: "IDR", color: "#6366f1", icon: "wallet" },
+    { user_id: userId, name: "GoPay",           balance: 1250000,  currency: "IDR", color: "#10b981", icon: "wallet" },
+    { user_id: userId, name: "Cash",            balance: 850000,   currency: "IDR", color: "#f59e0b", icon: "wallet" },
+    { user_id: userId, name: "OVO",             balance: 620000,   currency: "IDR", color: "#8b5cf6", icon: "wallet" },
+    { user_id: userId, name: "USD Wallet",      balance: 1250,     currency: "USD", color: "#22c55e", icon: "wallet" },
+    { user_id: userId, name: "SGD Wallet",      balance: 800,      currency: "SGD", color: "#06b6d4", icon: "wallet" },
   ];
 }
 
 function buildSavingsGoals(userId) {
   return [
-    { user_id: userId, name: "Emergency Fund", target_amount: 30000000, current_amount: 18500000, deadline: fmt(addDays(today, 180)), color: "#10b981" },
-    { user_id: userId, name: "Bandung Trip", target_amount: 3500000, current_amount: 2100000, deadline: fmt(addDays(today, 15)), color: "#6366f1" },
-    { user_id: userId, name: "MacBook Pro", target_amount: 25000000, current_amount: 8200000, deadline: fmt(addDays(today, 120)), color: "#8b5cf6" },
-    { user_id: userId, name: "Home Office Setup", target_amount: 8000000, current_amount: 4500000, deadline: fmt(addDays(today, 90)), color: "#f59e0b" },
+    { user_id: userId, name: "Emergency Fund",    target_amount: 30000000, current_amount: 18500000, currency: "IDR", exchange_rate: 1.0, deadline: fmt(addDays(today, 180)), color: "#10b981" },
+    { user_id: userId, name: "Bandung Trip",       target_amount: 3500000,  current_amount: 2100000,  currency: "IDR", exchange_rate: 1.0, deadline: fmt(addDays(today, 15)),  color: "#6366f1" },
+    { user_id: userId, name: "MacBook Pro",        target_amount: 25000000, current_amount: 8200000,  currency: "IDR", exchange_rate: 1.0, deadline: fmt(addDays(today, 120)), color: "#8b5cf6" },
+    { user_id: userId, name: "Home Office Setup",  target_amount: 8000000,  current_amount: 4500000,  currency: "IDR", exchange_rate: 1.0, deadline: fmt(addDays(today, 90)),  color: "#f59e0b" },
+    { user_id: userId, name: "Japan Vacation",     target_amount: 2000,     current_amount: 650,      currency: "USD", exchange_rate: 16200, deadline: fmt(addDays(today, 240)), color: "#ec4899" },
+    { user_id: userId, name: "Investment Fund",    target_amount: 50000000, current_amount: 12000000, currency: "IDR", exchange_rate: 1.0, deadline: fmt(addDays(today, 365)), color: "#a855f7" },
   ];
 }
 
 function buildTransactions(userId, walletIds) {
-  const [bca, gopay, cash, ovo] = walletIds;
+  const [bca, gopay, cash, ovo, usd, sgd] = walletIds;
   const tx = [];
 
   const incomes = [
@@ -244,6 +252,9 @@ function buildTransactions(userId, walletIds) {
     { day: -10, amount: 500000, cat: "Gift", desc: "Birthday gift from family", wallet: gopay },
     { day: -5, amount: 1200000, cat: "Investment", desc: "Dividend payout", wallet: bca },
     { day: -2, amount: 800000, cat: "Freelance", desc: "Consulting session", wallet: gopay },
+    { day: -10, amount: 350, cat: "Freelance", desc: "USD client payment — design sprint", wallet: usd },
+    { day: -25, amount: 200, cat: "Investment", desc: "Dividend — ETF portfolio", wallet: usd },
+    { day: -8, amount: 500, cat: "Freelance", desc: "SGD consulting retainer", wallet: sgd },
   ];
 
   const expenses = [
@@ -344,9 +355,9 @@ async function seed() {
   const { data: walletData, error: walletErr } = await supabase
     .from("wallets")
     .insert(wallets)
-    .select("id");
+    .select("id, currency");
   if (walletErr) throw walletErr;
-  console.log(`✓ ${wallets.length} wallets`);
+  console.log(`✓ ${wallets.length} wallets (${wallets.filter(w => w.currency === "IDR").length} IDR + ${wallets.filter(w => w.currency !== "IDR").length} foreign)`);
 
   const walletIds = walletData.map((w) => w.id);
 

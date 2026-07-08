@@ -28,13 +28,13 @@ export function FinanceTopbar() {
               className={cn(
                 "relative shrink-0 whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors sm:px-4",
                 isActive
-                  ? "text-indigo-600 dark:text-indigo-400"
+                  ? "text-blue-600 dark:text-blue-400"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
               )}
             >
               {t(key)}
               {isActive && (
-                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
+                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
               )}
             </Link>
           );

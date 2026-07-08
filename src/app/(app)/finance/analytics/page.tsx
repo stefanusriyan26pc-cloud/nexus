@@ -49,7 +49,7 @@ export default function FinanceAnalyticsPage() {
     health.score >= 80
       ? "text-emerald-600 dark:text-emerald-400"
       : health.score >= 60
-        ? "text-indigo-600 dark:text-indigo-400"
+        ? "text-blue-600 dark:text-blue-400"
         : health.score >= 40
           ? "text-amber-600 dark:text-amber-400"
           : "text-red-600 dark:text-red-400";
@@ -58,7 +58,7 @@ export default function FinanceAnalyticsPage() {
     health.score >= 80
       ? "stroke-emerald-500"
       : health.score >= 60
-        ? "stroke-indigo-500"
+        ? "stroke-blue-500"
         : health.score >= 40
           ? "stroke-amber-500"
           : "stroke-red-500";
@@ -271,7 +271,7 @@ function MetricCard({
   const tones = {
     emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
     red: "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400",
-    indigo: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400",
+    indigo: "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400",
     slate: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
   };
 

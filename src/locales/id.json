@@ -142,7 +142,13 @@
     "gridView": "Grid",
     "listView": "Daftar",
     "pin": "Sematkan catatan",
-    "unpin": "Lepas sematan"
+    "unpin": "Lepas sematan",
+    "categoryLabel": "Kategori",
+    "allNotes": "Semua Catatan",
+    "uncategorized": "Tanpa Kategori",
+    "folderView": "Folder",
+    "notesCount": "catatan",
+    "backToFolders": "Semua Folder"
   },
   "calendar": {
     "title": "Kalender",
@@ -159,7 +165,10 @@
     "descriptionLabel": "Deskripsi",
     "startLabel": "Mulai",
     "endLabel": "Selesai",
-    "colorLabel": "Warna"
+    "colorLabel": "Warna",
+    "weekView": "Minggu",
+    "noEventsDay": "Tidak ada acara",
+    "today": "Hari ini"
   },
   "finance": {
     "title": "Keuangan",
@@ -215,7 +224,12 @@
     "noExpenseData": "Belum ada pengeluaran bulan ini.",
     "savingsOverview": "Target Tabungan",
     "overallProgress": "Progres keseluruhan",
-    "monthlyNetHint": "Pemasukan dikurangi pengeluaran untuk bulan berjalan."
+    "monthlyNetHint": "Pemasukan dikurangi pengeluaran untuk bulan berjalan.",
+    "totalAllCurrencies": "Total Semua Dompet (dalam IDR)",
+    "fetchRates": "Ambil kurs mata uang",
+    "fetchingRates": "Mengambil kurs...",
+    "ratesNeeded": "Ambil kurs untuk menghitung",
+    "convertedEstimate": "Estimasi — kurs tengah pasar"
   },
   "filters": {
     "status": "Status",
@@ -243,11 +257,15 @@
     "title": "Pengaturan",
     "subtitle": "Preferensi sistem",
     "regional": "Regional",
+    "regionalSub": "Bahasa dan mata uang",
     "currencyLabel": "Mata Uang",
     "currencyHint": "Semua jumlah akan ditampilkan dalam Rupiah.",
     "currencyIdr": "Rupiah Indonesia (IDR)",
     "notifications": "Notifikasi",
+    "notificationsSub": "Preferensi notifikasi",
+    "appearanceSub": "Sesuaikan tema tampilan",
     "security": "Keamanan",
+    "securitySub": "Keamanan akun",
     "securityHint": "Perubahan kata sandi dikelola melalui penyedia autentikasi Anda (email atau Google)."
   },
   "profile": {
@@ -259,11 +277,56 @@
     "emailHint": "Email tidak dapat diubah di sini.",
     "uploading": "Mengunggah...",
     "removePhoto": "Hapus foto profil",
-    "changePhoto": "Ganti foto"
+    "changePhoto": "Ganti foto",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Ceritakan sedikit tentang dirimu...",
+    "locationLabel": "Lokasi",
+    "locationPlaceholder": "Kota, Negara",
+    "memberSince": "Bergabung sejak",
+    "accountSection": "Informasi Akun",
+    "statsSection": "Aktivitas"
   },
   "priority": {
     "low": "rendah",
     "medium": "sedang",
     "high": "tinggi"
+  },
+  "landing": {
+    "heroTitle": "Semua yang Anda butuhkan untuk",
+    "heroHighlight": "mengatur hidup Anda",
+    "heroDesc": "Tugas, catatan, kalender, dan keuangan — satu workspace terfokus yang dibangun untuk ketenangan dan kejernihan.",
+    "ctaStart": "Mulai gratis",
+    "trustSecure": "Aman & privat",
+    "trustFast": "Cepat & responsif",
+    "trustFree": "Gratis untuk memulai",
+    "featuresTitle": "Semuanya dalam satu tempat",
+    "featuresDesc": "Empat modul utama. Satu workspace terfokus.",
+    "featureTasks": "Tugas",
+    "featureTasksDesc": "Papan Kanban, daftar, dan pelacak tenggat untuk tetap terorganisir.",
+    "featureSchedule": "Kalender",
+    "featureScheduleDesc": "Acara, pengingat, dan sinkronisasi jadwal agar tak ada yang terlewat.",
+    "featureFinance": "Keuangan",
+    "featureFinanceDesc": "Lacak pemasukan, pengeluaran, dan target tabungan dalam satu tampilan.",
+    "featureNotes": "Catatan",
+    "featureNotesDesc": "Tangkap ide, pemikiran, dan apapun yang layak diingat dengan cepat.",
+    "statModules": "Modul utama",
+    "statFree": "Gratis selamanya",
+    "statDark": "Mode gelap",
+    "statLang": "Bahasa",
+    "howItWorksTitle": "Mulai dalam hitungan menit",
+    "howItWorksDesc": "Tiga langkah mudah menuju hidup yang lebih terorganisir.",
+    "step1Label": "Buat akun",
+    "step1Desc": "Daftar dalam hitungan detik dengan email atau Google — tanpa kartu kredit.",
+    "step2Label": "Atur ruang kerja Anda",
+    "step2Desc": "Tambahkan tugas, catatan, dan target keuangan untuk personalisasi dasbor.",
+    "step3Label": "Pantau segalanya",
+    "step3Desc": "Lacak progres, tinjau pengeluaran, dan jangan pernah melewatkan tenggat waktu.",
+    "spotlightTasksTitle": "Jangan sampai ada tugas yang terlewat",
+    "spotlightTasksDesc": "Kelola pekerjaan dengan papan Kanban, daftar terurut, dan pelacak tenggat waktu. Filter berdasarkan status, prioritas, atau tanggal jatuh tempo.",
+    "spotlightFinanceTitle": "Tahu persis ke mana uang Anda pergi",
+    "spotlightFinanceDesc": "Catat pemasukan dan pengeluaran, tetapkan tujuan tabungan, dan lacak beberapa dompet. Tampilan kalender dan kurs tukar langsung memberi gambaran lengkap.",
+    "ctaBannerTitle": "Siap mengendalikan hidup Anda?",
+    "ctaBannerDesc": "Bergabung dengan Nexus dan mulai membangun kehidupan terorganisir yang Anda inginkan.",
+    "footerTagline": "Dibuat untuk kejelasan."
   }
 }

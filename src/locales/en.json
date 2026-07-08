@@ -142,7 +142,13 @@
     "gridView": "Grid",
     "listView": "List",
     "pin": "Pin note",
-    "unpin": "Unpin note"
+    "unpin": "Unpin note",
+    "categoryLabel": "Category",
+    "allNotes": "All Notes",
+    "uncategorized": "Uncategorized",
+    "folderView": "Folders",
+    "notesCount": "notes",
+    "backToFolders": "All Folders"
   },
   "calendar": {
     "title": "Calendar",
@@ -159,7 +165,10 @@
     "descriptionLabel": "Description",
     "startLabel": "Start",
     "endLabel": "End",
-    "colorLabel": "Color"
+    "colorLabel": "Color",
+    "weekView": "Week",
+    "noEventsDay": "No events",
+    "today": "Today"
   },
   "finance": {
     "title": "Finance",
@@ -215,7 +224,12 @@
     "noExpenseData": "No expenses recorded this month.",
     "savingsOverview": "Savings Goals",
     "overallProgress": "Overall progress",
-    "monthlyNetHint": "Net income minus expenses for the current month."
+    "monthlyNetHint": "Net income minus expenses for the current month.",
+    "totalAllCurrencies": "Total All Wallets (in IDR)",
+    "fetchRates": "Fetch exchange rates",
+    "fetchingRates": "Fetching rates...",
+    "ratesNeeded": "Fetch live rates to calculate",
+    "convertedEstimate": "Estimated — mid-market rates"
   },
   "filters": {
     "status": "Status",
@@ -243,11 +257,15 @@
     "title": "Settings",
     "subtitle": "System preferences",
     "regional": "Regional",
+    "regionalSub": "Language and currency",
     "currencyLabel": "Currency",
     "currencyHint": "All amounts will be displayed in Rupiah.",
     "currencyIdr": "Indonesian Rupiah (IDR)",
     "notifications": "Notifications",
+    "notificationsSub": "Alert preferences",
+    "appearanceSub": "Customize your theme",
     "security": "Security",
+    "securitySub": "Account security",
     "securityHint": "Password changes are managed through your authentication provider (email or Google)."
   },
   "profile": {
@@ -259,11 +277,56 @@
     "emailHint": "Email cannot be changed here.",
     "uploading": "Uploading...",
     "removePhoto": "Remove profile photo",
-    "changePhoto": "Change photo"
+    "changePhoto": "Change photo",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Tell us a bit about yourself...",
+    "locationLabel": "Location",
+    "locationPlaceholder": "City, Country",
+    "memberSince": "Member since",
+    "accountSection": "Account Information",
+    "statsSection": "Activity"
   },
   "priority": {
     "low": "low",
     "medium": "medium",
     "high": "high"
+  },
+  "landing": {
+    "heroTitle": "Everything you need to",
+    "heroHighlight": "organize your life",
+    "heroDesc": "Tasks, notes, calendar, and finances — one focused workspace built for clarity and calm.",
+    "ctaStart": "Get started free",
+    "trustSecure": "Secure & private",
+    "trustFast": "Fast & responsive",
+    "trustFree": "Free to get started",
+    "featuresTitle": "Everything in one place",
+    "featuresDesc": "Four core modules. One focused workspace.",
+    "featureTasks": "Tasks",
+    "featureTasksDesc": "Kanban boards, lists, and deadline tracking to stay on top of your work.",
+    "featureSchedule": "Calendar",
+    "featureScheduleDesc": "Events, reminders, and schedule sync so nothing slips through.",
+    "featureFinance": "Finance",
+    "featureFinanceDesc": "Track income, expenses, and savings goals all in one view.",
+    "featureNotes": "Notes",
+    "featureNotesDesc": "Capture ideas, thoughts, and anything worth remembering instantly.",
+    "ctaBannerTitle": "Ready to take control of your life?",
+    "ctaBannerDesc": "Join Nexus and start building the organized life you deserve.",
+    "footerTagline": "Built for clarity.",
+    "statModules": "Core modules",
+    "statFree": "Free forever",
+    "statDark": "Dark mode",
+    "statLang": "Languages",
+    "howItWorksTitle": "Up and running in minutes",
+    "howItWorksDesc": "Three simple steps to a more organized life.",
+    "step1Label": "Create an account",
+    "step1Desc": "Sign up in seconds with email or Google — no credit card needed.",
+    "step2Label": "Set up your workspace",
+    "step2Desc": "Add tasks, notes, and financial goals to personalize your dashboard.",
+    "step3Label": "Stay on top of everything",
+    "step3Desc": "Track progress, review spending, and never miss a deadline again.",
+    "spotlightTasksTitle": "Never drop the ball on a task",
+    "spotlightTasksDesc": "Manage work with Kanban boards, prioritized lists, and deadline tracking. Filter by status, priority, or due date — and always know what needs attention next.",
+    "spotlightFinanceTitle": "Know exactly where your money goes",
+    "spotlightFinanceDesc": "Log income and expenses, set savings goals, and track multiple wallets. A built-in calendar view and live exchange rates give you the full picture."
   }
 }
