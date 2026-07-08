@@ -264,6 +264,10 @@
     "notifications": "Notifications",
     "notificationsSub": "Alert preferences",
     "appearanceSub": "Customize your theme",
+    "banks": "Banks",
+    "banksSub": "Manage your bank/e-wallet list",
+    "categories": "Categories",
+    "categoriesSub": "Manage note folders and transaction categories",
     "security": "Security",
     "securitySub": "Account security",
     "securityHint": "Password changes are managed through your authentication provider (email or Google)."

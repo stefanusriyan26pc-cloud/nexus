@@ -5,86 +5,80 @@ import { useProfile } from "@/components/layout/profile-provider";
 import { NoteGrid } from "@/components/notes/note-grid";
 import { NoteList } from "@/components/notes/note-list";
 import { Button } from "@/components/ui/button";
-import { IconButton } from "@/components/ui/icon-button";
 import { Input, Textarea, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { EmptyState, ViewToggle } from "@/components/ui/view-toggle";
 import { useTranslation } from "@/components/providers/i18n-provider";
 import { sortNotes } from "@/lib/notes/sort-notes";
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
-import type { Note } from "@/types/database";
+import type { Note, NoteFolder } from "@/types/database";
 import {
-  BookOpen, Briefcase, ChevronRight, FolderOpen, GraduationCap,
-  LayoutGrid, Lightbulb, List, NotebookPen, Plane, Plus,
-  Search, Trash2, Wallet,
+  ChevronRight, FolderOpen, LayoutGrid, List, NotebookPen,
+  Plus, Search, Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type View = "grid" | "list" | "folders";
 
-const NOTE_CATEGORIES = [
-  { id: "Personal",  label: "Personal",  icon: BookOpen,       color: "text-blue-500",    bg: "bg-blue-50 dark:bg-blue-950/30"    },
-  { id: "Work",      label: "Work",      icon: Briefcase,      color: "text-violet-500",  bg: "bg-violet-50 dark:bg-violet-950/30" },
-  { id: "Learning",  label: "Learning",  icon: GraduationCap,  color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-  { id: "Ideas",     label: "Ideas",     icon: Lightbulb,      color: "text-amber-500",   bg: "bg-amber-50 dark:bg-amber-950/30"   },
-  { id: "Finance",   label: "Finance",   icon: Wallet,         color: "text-cyan-500",    bg: "bg-cyan-50 dark:bg-cyan-950/30"     },
-  { id: "Travel",    label: "Travel",    icon: Plane,          color: "text-rose-500",    bg: "bg-rose-50 dark:bg-rose-950/30"     },
-] as const;
-
-type CategoryId = typeof NOTE_CATEGORIES[number]["id"] | "";
+const UNCATEGORIZED = "__uncategorized__";
 
 export default function NotesPage() {
   const profile = useProfile();
   const { t } = useTranslation();
   const [notes, setNotes]             = useState<Note[]>([]);
+  const [folders, setFolders]         = useState<NoteFolder[]>([]);
   const [view, setView]               = useState<View>("grid");
   const [search, setSearch]           = useState("");
-  const [activeCategory, setActiveCategory] = useState<CategoryId>("");
+  const [activeFolderId, setActiveFolderId] = useState<string>("");
   const [selected, setSelected]       = useState<Note | null>(null);
   const [loading, setLoading]         = useState(true);
   const [modalOpen, setModalOpen]     = useState(false);
   const [title, setTitle]             = useState("");
   const [content, setContent]         = useState("");
-  const [formCategory, setFormCategory] = useState<string>("");
+  const [formFolderId, setFormFolderId] = useState<string>("");
   const [saving, setSaving]           = useState(false);
 
-  const loadNotes = async () => {
+  const loadAll = async () => {
     const supabase = createClient();
-    const { data } = await supabase
-      .from("notes")
-      .select("*")
-      .order("is_pinned", { ascending: false })
-      .order("updated_at", { ascending: false });
-    setNotes(sortNotes(data ?? []));
+    const [notesRes, foldersRes] = await Promise.all([
+      supabase.from("notes").select("*").order("is_pinned", { ascending: false }).order("updated_at", { ascending: false }),
+      supabase.from("note_folders").select("*").order("position"),
+    ]);
+    setNotes(sortNotes(notesRes.data ?? []));
+    setFolders(foldersRes.data ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { loadNotes(); }, []);
+  useEffect(() => { loadAll(); }, []);
 
   const filtered = useMemo(() => {
     let result = notes;
-    if (activeCategory) result = result.filter((n) => (n.category ?? "") === activeCategory);
+    if (activeFolderId === UNCATEGORIZED) result = result.filter((n) => !n.folder_id);
+    else if (activeFolderId) result = result.filter((n) => n.folder_id === activeFolderId);
     const q = search.trim().toLowerCase();
     if (q) result = result.filter((n) => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q));
     return result;
-  }, [notes, search, activeCategory]);
+  }, [notes, search, activeFolderId]);
 
-  // Category stats
-  const categoryCounts = useMemo(() => {
+  // Folder stats
+  const folderCounts = useMemo(() => {
     const map: Record<string, number> = {};
     for (const note of notes) {
-      const cat = note.category || "";
-      map[cat] = (map[cat] ?? 0) + 1;
+      const key = note.folder_id ?? UNCATEGORIZED;
+      map[key] = (map[key] ?? 0) + 1;
     }
     return map;
   }, [notes]);
+
+  const activeFolderName = activeFolderId === UNCATEGORIZED
+    ? t("notes.uncategorized")
+    : folders.find((f) => f.id === activeFolderId)?.name ?? "";
 
   const openCreate = () => {
     setSelected(null);
     setTitle("");
     setContent("");
-    setFormCategory(activeCategory || "");
+    setFormFolderId(activeFolderId && activeFolderId !== UNCATEGORIZED ? activeFolderId : "");
     setModalOpen(true);
   };
 
@@ -92,7 +86,7 @@ export default function NotesPage() {
     setSelected(note);
     setTitle(note.title);
     setContent(note.content);
-    setFormCategory(note.category ?? "");
+    setFormFolderId(note.folder_id ?? "");
     setModalOpen(true);
   };
 
@@ -103,7 +97,7 @@ export default function NotesPage() {
     if (selected) {
       const { data } = await supabase
         .from("notes")
-        .update({ title: title || "Untitled", content, category: formCategory })
+        .update({ title: title || "Untitled", content, folder_id: formFolderId || null })
         .eq("id", selected.id)
         .select()
         .single();
@@ -111,7 +105,7 @@ export default function NotesPage() {
     } else {
       const { data } = await supabase
         .from("notes")
-        .insert({ user_id: user!.id, title: title || "Untitled", content, category: formCategory })
+        .insert({ user_id: user!.id, title: title || "Untitled", content, folder_id: formFolderId || null })
         .select()
         .single();
       if (data) setNotes(sortNotes([data, ...notes]));
@@ -138,7 +132,7 @@ export default function NotesPage() {
     setModalOpen(false);
   };
 
-  const viewInFolder = view !== "folders" || activeCategory !== "";
+  const viewInFolder = view !== "folders" || activeFolderId !== "";
 
   return (
     <>
@@ -160,20 +154,20 @@ export default function NotesPage() {
                 { id: "folders" as View, label: t("notes.folderView"), icon: FolderOpen },
               ]}
               active={view}
-              onChange={(v) => { setView(v as View); setActiveCategory(""); }}
+              onChange={(v) => { setView(v as View); setActiveFolderId(""); }}
             />
-            {/* Active category breadcrumb */}
-            {activeCategory && (
+            {/* Active folder breadcrumb */}
+            {activeFolderId && (
               <div className="flex items-center gap-1 text-sm text-slate-500">
                 <ChevronRight className="h-4 w-4" />
                 <button
-                  onClick={() => setActiveCategory("")}
+                  onClick={() => setActiveFolderId("")}
                   className="font-medium text-blue-600 hover:underline dark:text-blue-400"
                 >
                   {t("notes.backToFolders")}
                 </button>
                 <ChevronRight className="h-4 w-4" />
-                <span className="font-medium text-slate-800 dark:text-slate-200">{activeCategory}</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{activeFolderName}</span>
               </div>
             )}
           </div>
@@ -196,27 +190,29 @@ export default function NotesPage() {
               <div key={i} className="h-40 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800" />
             ))}
           </div>
-        ) : view === "folders" && !activeCategory ? (
+        ) : view === "folders" && !activeFolderId ? (
           /* ── Folder view ─────────────────────────────────────────── */
           <div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {NOTE_CATEGORIES.map((cat) => {
-                const count = categoryCounts[cat.id] ?? 0;
-                const CatIcon = cat.icon;
-                const preview = notes.find((n) => (n.category ?? "") === cat.id);
+              {folders.map((folder) => {
+                const count = folderCounts[folder.id] ?? 0;
+                const preview = notes.find((n) => n.folder_id === folder.id);
                 return (
                   <button
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
+                    key={folder.id}
+                    onClick={() => setActiveFolderId(folder.id)}
                     className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
                   >
-                    <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", cat.bg)}>
-                      <CatIcon className={cn("h-6 w-6", cat.color)} />
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: `${folder.color}20` }}
+                    >
+                      <FolderOpen className="h-6 w-6" style={{ color: folder.color }} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-semibold text-slate-900 dark:text-slate-100">{cat.label}</p>
-                        <span className="text-xs font-medium text-slate-400">{count} {t("notes.notesCount")}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate font-semibold text-slate-900 dark:text-slate-100">{folder.name}</p>
+                        <span className="shrink-0 text-xs font-medium text-slate-400">{count} {t("notes.notesCount")}</span>
                       </div>
                       <p className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
                         {preview ? preview.title : "—"}
@@ -226,9 +222,9 @@ export default function NotesPage() {
                 );
               })}
               {/* Uncategorized folder */}
-              {(categoryCounts[""] ?? 0) > 0 && (
+              {(folderCounts[UNCATEGORIZED] ?? 0) > 0 && (
                 <button
-                  onClick={() => setActiveCategory("")}
+                  onClick={() => setActiveFolderId(UNCATEGORIZED)}
                   className="group flex items-start gap-4 rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-left shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
                 >
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">
@@ -237,11 +233,16 @@ export default function NotesPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-slate-900 dark:text-slate-100">{t("notes.uncategorized")}</p>
-                      <span className="text-xs font-medium text-slate-400">{categoryCounts[""] ?? 0} {t("notes.notesCount")}</span>
+                      <span className="text-xs font-medium text-slate-400">{folderCounts[UNCATEGORIZED] ?? 0} {t("notes.notesCount")}</span>
                     </div>
                     <p className="mt-1 text-xs text-slate-500">{t("notes.allNotes")}</p>
                   </div>
                 </button>
+              )}
+              {folders.length === 0 && (folderCounts[UNCATEGORIZED] ?? 0) === 0 && (
+                <p className="col-span-full py-8 text-center text-sm text-slate-400">
+                  No folders yet. Create one in Settings → Categories.
+                </p>
               )}
             </div>
           </div>
@@ -254,7 +255,7 @@ export default function NotesPage() {
           />
         ) : filtered.length === 0 ? (
           <p className="py-12 text-center text-sm text-slate-500 dark:text-slate-400">{t("common.noData")}</p>
-        ) : view === "grid" || (view === "folders" && activeCategory) ? (
+        ) : view === "grid" || (view === "folders" && activeFolderId) ? (
           <NoteGrid notes={filtered} onEdit={openEdit} onTogglePin={togglePin} />
         ) : (
           <NoteList notes={filtered} onEdit={openEdit} onTogglePin={togglePin} onDelete={deleteNote} />
@@ -277,10 +278,10 @@ export default function NotesPage() {
           />
           <div>
             <label className="mb-1.5 block text-xs font-medium text-slate-500">{t("notes.categoryLabel")}</label>
-            <Select value={formCategory} onChange={(e) => setFormCategory(e.target.value)}>
+            <Select value={formFolderId} onChange={(e) => setFormFolderId(e.target.value)}>
               <option value="">{t("notes.uncategorized")}</option>
-              {NOTE_CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>{c.label}</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
               ))}
             </Select>
           </div>

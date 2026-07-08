@@ -5,27 +5,40 @@ import { useProfile } from "@/components/layout/profile-provider";
 import { useTranslation } from "@/components/providers/i18n-provider";
 import { ThemeToggle } from "@/components/settings/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/input";
+import { Input, Select } from "@/components/ui/input";
 import { useCurrencyPreference } from "@/hooks/use-currency-preference";
 import { useLocalePreference } from "@/hooks/use-locale-preference";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { createClient } from "@/lib/supabase/client";
+import { ensureDefaultCategories } from "@/lib/finance/categories";
 import { type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import type { NoteFolder, TransactionCategory, UserBank } from "@/types/database";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   Bell, Globe, Loader2, Moon, RefreshCw, Shield,
   User, CheckCircle2, ArrowRightLeft, ChevronRight,
+  Landmark, Plus, Trash2, Pencil, Check, X, Tags, FolderOpen,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const NOTIF_KEY = "nexus_notifications";
 
-type SectionId = "regional" | "notifications" | "appearance" | "security";
+const FOLDER_COLORS = [
+  "#6366f1", "#8b5cf6", "#a855f7", "#ec4899", "#f43f5e",
+  "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16",
+  "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9",
+  "#3b82f6", "#64748b", "#78716c", "#d97706", "#be185d",
+];
+
+type SectionId = "regional" | "notifications" | "appearance" | "banks" | "categories" | "security";
 
 const NAV_ITEMS: { id: SectionId; icon: React.ElementType; labelKey: string; subtitleKey: string; color: string }[] = [
   { id: "regional",      icon: Globe,   labelKey: "settings.regional",      subtitleKey: "settings.regionalSub",      color: "indigo" },
   { id: "notifications", icon: Bell,    labelKey: "settings.notifications",  subtitleKey: "settings.notificationsSub", color: "amber"  },
   { id: "appearance",    icon: Moon,    labelKey: "theme.title",             subtitleKey: "settings.appearanceSub",    color: "cyan" },
+  { id: "banks",         icon: Landmark, labelKey: "settings.banks",         subtitleKey: "settings.banksSub",         color: "emerald" },
+  { id: "categories",    icon: Tags,    labelKey: "settings.categories",     subtitleKey: "settings.categoriesSub",    color: "violet" },
   { id: "security",      icon: Shield,  labelKey: "settings.security",       subtitleKey: "settings.securitySub",      color: "red"    },
 ];
 
@@ -33,6 +46,8 @@ const COLOR_MAP: Record<string, { icon: string; bg: string; activeBg: string; ac
   indigo: { icon: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/30", activeBg: "bg-blue-50 dark:bg-blue-900/20", activeFg: "text-blue-700 dark:text-blue-300" },
   amber:  { icon: "text-amber-600 dark:text-amber-400",   bg: "bg-amber-50 dark:bg-amber-900/30",   activeBg: "bg-amber-50 dark:bg-amber-900/20",   activeFg: "text-amber-700 dark:text-amber-300"   },
   cyan: { icon: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-900/30", activeBg: "bg-cyan-50 dark:bg-cyan-900/20", activeFg: "text-cyan-700 dark:text-cyan-300" },
+  emerald: { icon: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/30", activeBg: "bg-emerald-50 dark:bg-emerald-900/20", activeFg: "text-emerald-700 dark:text-emerald-300" },
+  violet: { icon: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-900/30", activeBg: "bg-violet-50 dark:bg-violet-900/20", activeFg: "text-violet-700 dark:text-violet-300" },
   red:    { icon: "text-red-600 dark:text-red-400",       bg: "bg-red-50 dark:bg-red-900/30",       activeBg: "bg-red-50 dark:bg-red-900/20",       activeFg: "text-red-700 dark:text-red-300"       },
 };
 
@@ -92,11 +107,163 @@ export default function SettingsPage() {
   const [pwLoading, setPwLoading] = useState(false);
   const [pwMsg, setPwMsg] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<SectionId>("regional");
+  const [banks, setBanks] = useState<UserBank[]>([]);
+  const [newBankName, setNewBankName] = useState("");
+  const [editingBankId, setEditingBankId] = useState<string | null>(null);
+  const [editingBankName, setEditingBankName] = useState("");
+
+  const [folders, setFolders] = useState<NoteFolder[]>([]);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderColor, setNewFolderColor] = useState(FOLDER_COLORS[0]);
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState("");
+  const [editingFolderColor, setEditingFolderColor] = useState(FOLDER_COLORS[0]);
+
+  const [categories, setCategories] = useState<TransactionCategory[]>([]);
+  const [newIncomeCat, setNewIncomeCat] = useState("");
+  const [newExpenseCat, setNewExpenseCat] = useState("");
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editingCatName, setEditingCatName] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem(NOTIF_KEY);
     if (saved) setNotifs(JSON.parse(saved));
+    async function loadAll() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await ensureDefaultCategories(supabase, user.id);
+      const [bankRes, folderRes, catRes] = await Promise.all([
+        supabase.from("user_banks").select("*").order("position"),
+        supabase.from("note_folders").select("*").order("position"),
+        supabase.from("transaction_categories").select("*").order("position"),
+      ]);
+      setBanks(bankRes.data ?? []);
+      setFolders(folderRes.data ?? []);
+      setCategories(catRes.data ?? []);
+    }
+    loadAll();
   }, []);
+
+  const addBank = async () => {
+    const name = newBankName.trim();
+    if (!name) return;
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data } = await supabase
+      .from("user_banks")
+      .insert({ user_id: user!.id, name, position: banks.length })
+      .select()
+      .single();
+    if (data) setBanks([...banks, data]);
+    setNewBankName("");
+  };
+
+  const startEditBank = (bank: UserBank) => {
+    setEditingBankId(bank.id);
+    setEditingBankName(bank.name);
+  };
+
+  const saveEditBank = async () => {
+    if (!editingBankId || !editingBankName.trim()) return;
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("user_banks")
+      .update({ name: editingBankName.trim() })
+      .eq("id", editingBankId)
+      .select()
+      .single();
+    if (data) setBanks(banks.map((b) => (b.id === data.id ? data : b)));
+    setEditingBankId(null);
+    setEditingBankName("");
+  };
+
+  const deleteBank = async (id: string) => {
+    const supabase = createClient();
+    await supabase.from("user_banks").delete().eq("id", id);
+    setBanks(banks.filter((b) => b.id !== id));
+  };
+
+  const addFolder = async () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data } = await supabase
+      .from("note_folders")
+      .insert({ user_id: user!.id, name, color: newFolderColor, position: folders.length })
+      .select()
+      .single();
+    if (data) setFolders([...folders, data]);
+    setNewFolderName("");
+    setNewFolderColor(FOLDER_COLORS[0]);
+  };
+
+  const startEditFolder = (folder: NoteFolder) => {
+    setEditingFolderId(folder.id);
+    setEditingFolderName(folder.name);
+    setEditingFolderColor(folder.color);
+  };
+
+  const saveEditFolder = async () => {
+    if (!editingFolderId || !editingFolderName.trim()) return;
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("note_folders")
+      .update({ name: editingFolderName.trim(), color: editingFolderColor })
+      .eq("id", editingFolderId)
+      .select()
+      .single();
+    if (data) setFolders(folders.map((f) => (f.id === data.id ? data : f)));
+    setEditingFolderId(null);
+    setEditingFolderName("");
+  };
+
+  const deleteFolder = async (folder: NoteFolder) => {
+    if (!confirm(`Delete folder "${folder.name}"? Notes inside will move to Uncategorized.`)) return;
+    const supabase = createClient();
+    await supabase.from("note_folders").delete().eq("id", folder.id);
+    setFolders(folders.filter((f) => f.id !== folder.id));
+  };
+
+  const addCategory = async (type: "income" | "expense") => {
+    const name = (type === "income" ? newIncomeCat : newExpenseCat).trim();
+    if (!name) return;
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const position = categories.filter((c) => c.type === type).length;
+    const { data } = await supabase
+      .from("transaction_categories")
+      .insert({ user_id: user!.id, type, name, position })
+      .select()
+      .single();
+    if (data) setCategories([...categories, data]);
+    if (type === "income") setNewIncomeCat(""); else setNewExpenseCat("");
+  };
+
+  const startEditCategory = (cat: TransactionCategory) => {
+    setEditingCatId(cat.id);
+    setEditingCatName(cat.name);
+  };
+
+  const saveEditCategory = async () => {
+    if (!editingCatId || !editingCatName.trim()) return;
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("transaction_categories")
+      .update({ name: editingCatName.trim() })
+      .eq("id", editingCatId)
+      .select()
+      .single();
+    if (data) setCategories(categories.map((c) => (c.id === data.id ? data : c)));
+    setEditingCatId(null);
+    setEditingCatName("");
+  };
+
+  const deleteCategory = async (id: string) => {
+    const supabase = createClient();
+    await supabase.from("transaction_categories").delete().eq("id", id);
+    setCategories(categories.filter((c) => c.id !== id));
+  };
 
   const saveNotif = (next: typeof notifs) => {
     setNotifs(next);
@@ -334,6 +501,205 @@ export default function SettingsPage() {
               <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
                 <SectionTitle icon={Moon} title={t("theme.title")} subtitle={t("theme.description")} color="cyan" />
                 <ThemeToggle />
+              </div>
+            )}
+
+            {/* ── Banks ── */}
+            {activeSection === "banks" && (
+              <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
+                <SectionTitle icon={Landmark} title={t("settings.banks")} subtitle={t("settings.banksSub")} color="emerald" />
+                <div className="flex gap-2">
+                  <Input
+                    value={newBankName}
+                    onChange={(e) => setNewBankName(e.target.value)}
+                    placeholder="e.g. BCA, Mandiri, GoPay"
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBank(); } }}
+                  />
+                  <Button onClick={addBank} disabled={!newBankName.trim()}>
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </Button>
+                </div>
+                {banks.length === 0 ? (
+                  <p className="mt-4 text-sm text-slate-400">No banks yet — add one above so it shows up in the wallet form.</p>
+                ) : (
+                  <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+                    {banks.map((bank) => (
+                      <div key={bank.id} className="flex items-center justify-between py-2.5">
+                        {editingBankId === bank.id ? (
+                          <Input
+                            value={editingBankName}
+                            onChange={(e) => setEditingBankName(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveEditBank(); } }}
+                            autoFocus
+                            className="max-w-xs"
+                          />
+                        ) : (
+                          <span className="text-sm text-slate-700 dark:text-slate-300">{bank.name}</span>
+                        )}
+                        <div className="flex items-center gap-1">
+                          {editingBankId === bank.id ? (
+                            <>
+                              <IconButton icon={Check} label="Save" onClick={saveEditBank} />
+                              <IconButton icon={X} label="Cancel" onClick={() => setEditingBankId(null)} />
+                            </>
+                          ) : (
+                            <>
+                              <IconButton icon={Pencil} label={t("common.edit")} onClick={() => startEditBank(bank)} />
+                              <IconButton icon={Trash2} label={t("common.delete")} onClick={() => deleteBank(bank.id)} className="text-red-400 hover:text-red-500" />
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Categories ── */}
+            {activeSection === "categories" && (
+              <div className="space-y-6">
+                {/* Note folders */}
+                <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
+                  <SectionTitle icon={FolderOpen} title="Note Folders" subtitle="Used to organize your notes" color="violet" />
+                  <div className="flex flex-wrap items-start gap-2">
+                    <Input
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      placeholder="e.g. Recipes"
+                      className="max-w-xs"
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addFolder(); } }}
+                    />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {FOLDER_COLORS.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setNewFolderColor(c)}
+                          className={cn(
+                            "h-6 w-6 rounded-full transition-transform hover:scale-110",
+                            newFolderColor === c ? "ring-2 ring-offset-2 ring-blue-500" : ""
+                          )}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                    <Button onClick={addFolder} disabled={!newFolderName.trim()}>
+                      <Plus className="h-4 w-4" />
+                      Add
+                    </Button>
+                  </div>
+                  {folders.length === 0 ? (
+                    <p className="mt-4 text-sm text-slate-400">No folders yet — add one above so it shows up in Notes.</p>
+                  ) : (
+                    <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+                      {folders.map((folder) => (
+                        <div key={folder.id} className="flex items-center justify-between py-2.5">
+                          {editingFolderId === folder.id ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                value={editingFolderName}
+                                onChange={(e) => setEditingFolderName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveEditFolder(); } }}
+                                autoFocus
+                                className="max-w-xs"
+                              />
+                              <div className="flex items-center gap-1">
+                                {FOLDER_COLORS.map((c) => (
+                                  <button
+                                    key={c}
+                                    onClick={() => setEditingFolderColor(c)}
+                                    className={cn(
+                                      "h-5 w-5 rounded-full transition-transform hover:scale-110",
+                                      editingFolderColor === c ? "ring-2 ring-offset-1 ring-blue-500" : ""
+                                    )}
+                                    style={{ backgroundColor: c }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: folder.color }} />
+                              {folder.name}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-1">
+                            {editingFolderId === folder.id ? (
+                              <>
+                                <IconButton icon={Check} label="Save" onClick={saveEditFolder} />
+                                <IconButton icon={X} label="Cancel" onClick={() => setEditingFolderId(null)} />
+                              </>
+                            ) : (
+                              <>
+                                <IconButton icon={Pencil} label={t("common.edit")} onClick={() => startEditFolder(folder)} />
+                                <IconButton icon={Trash2} label={t("common.delete")} onClick={() => deleteFolder(folder)} className="text-red-400 hover:text-red-500" />
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Transaction categories */}
+                {(["income", "expense"] as const).map((type) => (
+                  <div key={type} className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
+                    <SectionTitle
+                      icon={Tags}
+                      title={type === "income" ? "Income Categories" : "Expense Categories"}
+                      subtitle="Used in the Income/Expense form"
+                      color="violet"
+                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={type === "income" ? newIncomeCat : newExpenseCat}
+                        onChange={(e) => (type === "income" ? setNewIncomeCat(e.target.value) : setNewExpenseCat(e.target.value))}
+                        placeholder={type === "income" ? "e.g. Bonus" : "e.g. Subscriptions"}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCategory(type); } }}
+                      />
+                      <Button onClick={() => addCategory(type)} disabled={!(type === "income" ? newIncomeCat : newExpenseCat).trim()}>
+                        <Plus className="h-4 w-4" />
+                        Add
+                      </Button>
+                    </div>
+                    {categories.filter((c) => c.type === type).length === 0 ? (
+                      <p className="mt-4 text-sm text-slate-400">No categories yet — add one above.</p>
+                    ) : (
+                      <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+                        {categories.filter((c) => c.type === type).map((cat) => (
+                          <div key={cat.id} className="flex items-center justify-between py-2.5">
+                            {editingCatId === cat.id ? (
+                              <Input
+                                value={editingCatName}
+                                onChange={(e) => setEditingCatName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveEditCategory(); } }}
+                                autoFocus
+                                className="max-w-xs"
+                              />
+                            ) : (
+                              <span className="text-sm text-slate-700 dark:text-slate-300">{cat.name}</span>
+                            )}
+                            <div className="flex items-center gap-1">
+                              {editingCatId === cat.id ? (
+                                <>
+                                  <IconButton icon={Check} label="Save" onClick={saveEditCategory} />
+                                  <IconButton icon={X} label="Cancel" onClick={() => setEditingCatId(null)} />
+                                </>
+                              ) : (
+                                <>
+                                  <IconButton icon={Pencil} label={t("common.edit")} onClick={() => startEditCategory(cat)} />
+                                  <IconButton icon={Trash2} label={t("common.delete")} onClick={() => deleteCategory(cat.id)} className="text-red-400 hover:text-red-500" />
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
 

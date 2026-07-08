@@ -264,6 +264,10 @@
     "notifications": "Notifikasi",
     "notificationsSub": "Preferensi notifikasi",
     "appearanceSub": "Sesuaikan tema tampilan",
+    "banks": "Bank",
+    "banksSub": "Kelola daftar bank/e-wallet Anda",
+    "categories": "Kategori",
+    "categoriesSub": "Kelola folder catatan dan kategori transaksi",
     "security": "Keamanan",
     "securitySub": "Keamanan akun",
     "securityHint": "Perubahan kata sandi dikelola melalui penyedia autentikasi Anda (email atau Google)."

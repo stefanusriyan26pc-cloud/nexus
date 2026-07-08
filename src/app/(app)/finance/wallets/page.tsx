@@ -6,14 +6,22 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-import { EmptyState } from "@/components/ui/view-toggle";
+import { EmptyState, ViewToggle } from "@/components/ui/view-toggle";
 import { formatCurrency, formatRupiah, parseRupiahInput, parseDecimalInput, SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { Select } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import type { Wallet } from "@/types/database";
-import { Plus, Trash2, Wallet as WalletIcon, RefreshCw, Loader2, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import type { UserBank, Wallet } from "@/types/database";
+import {
+  Plus, Trash2, Wallet as WalletIcon, RefreshCw, Loader2, TrendingUp,
+  Pencil, GripVertical, LayoutGrid, Building2,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@/components/providers/i18n-provider";
+import {
+  DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, closestCenter,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const COLORS = [
   "#6366f1","#8b5cf6","#a855f7","#ec4899","#f43f5e",
@@ -22,22 +30,114 @@ const COLORS = [
   "#3b82f6","#64748b","#78716c","#d97706","#be185d",
 ];
 
+const NO_BANK = "__no_bank__";
+
+type LayoutView = "all" | "grouped";
+
+function WalletCardBody({
+  wallet, onEdit, onDelete, formatBalance, t,
+}: {
+  wallet: Wallet;
+  onEdit: () => void;
+  onDelete: () => void;
+  formatBalance: (w: Wallet) => string;
+  t: (k: string) => string;
+}) {
+  return (
+    <Card className="overflow-hidden">
+      <div className="h-1.5" style={{ backgroundColor: wallet.color }} />
+      <CardContent className="p-5">
+        <div className="mb-4 flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-lg"
+              style={{ backgroundColor: `${wallet.color}20` }}
+            >
+              <WalletIcon className="h-5 w-5" style={{ color: wallet.color }} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100">{wallet.name}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{wallet.currency}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <IconButton icon={Pencil} label={t("common.edit")} onClick={onEdit} />
+            <IconButton
+              icon={Trash2}
+              label={t("common.delete")}
+              onClick={onDelete}
+              className="text-red-400 hover:text-red-500 dark:hover:text-red-300"
+            />
+          </div>
+        </div>
+        <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
+          {formatBalance(wallet)}
+        </p>
+        {wallet.currency && wallet.currency !== "IDR" && (
+          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">↔ Transfer only (foreign currency)</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SortableWalletCard(props: {
+  wallet: Wallet;
+  onEdit: () => void;
+  onDelete: () => void;
+  formatBalance: (w: Wallet) => string;
+  t: (k: string) => string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: props.wallet.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={isDragging ? "opacity-50" : ""}
+    >
+      <div className="relative">
+        <button
+          {...attributes}
+          {...listeners}
+          className="absolute -left-1 -top-1 z-10 flex h-6 w-6 cursor-grab items-center justify-center rounded-md bg-white text-slate-300 shadow-sm hover:text-slate-500 active:cursor-grabbing dark:bg-slate-800 dark:text-slate-600"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+        <WalletCardBody {...props} />
+      </div>
+    </div>
+  );
+}
+
 export default function WalletsPage() {
   const { t } = useTranslation();
   const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [banks, setBanks] = useState<UserBank[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", balance: "", color: COLORS[0], currency: "IDR" });
+  const [editTarget, setEditTarget] = useState<Wallet | null>(null);
+  const [layoutView, setLayoutView] = useState<LayoutView>("all");
+  const [form, setForm] = useState({ name: "", balance: "", color: COLORS[0], currency: "IDR", bank: "" });
   const [saving, setSaving] = useState(false);
   const [rates, setRates] = useState<Record<string, number>>({});
   const [fetchingRates, setFetchingRates] = useState(false);
   const [ratesDate, setRatesDate] = useState<string | null>(null);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
   useEffect(() => {
     async function load() {
       const supabase = createClient();
-      const { data } = await supabase.from("wallets").select("*").order("created_at");
-      setWallets(data ?? []);
+      const [walletRes, bankRes] = await Promise.all([
+        supabase.from("wallets").select("*").order("position"),
+        supabase.from("user_banks").select("*").order("position"),
+      ]);
+      setWallets(walletRes.data ?? []);
+      setBanks(bankRes.data ?? []);
       setLoading(false);
     }
     load();
@@ -70,37 +170,77 @@ export default function WalletsPage() {
     const amt = Number(wallet.balance);
     const cur = wallet.currency ?? "IDR";
     if (cur === "IDR") return formatRupiah(amt);
-    // For foreign: use parseDecimalInput precision (already stored as decimal)
     return formatCurrency(amt, cur);
   };
 
-  const handleCreate = async () => {
+  const groupedWallets = useMemo(() => {
+    const groups = new Map<string, Wallet[]>();
+    for (const w of wallets) {
+      const key = w.bank || NO_BANK;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(w);
+    }
+    return Array.from(groups.entries());
+  }, [wallets]);
+
+  const openCreate = () => {
+    setEditTarget(null);
+    setForm({ name: "", balance: "", color: COLORS[0], currency: "IDR", bank: "" });
+    setModalOpen(true);
+  };
+
+  const openEdit = (wallet: Wallet) => {
+    setEditTarget(wallet);
+    setForm({
+      name: wallet.name,
+      balance: "",
+      color: wallet.color,
+      currency: wallet.currency,
+      bank: wallet.bank ?? "",
+    });
+    setModalOpen(true);
+  };
+
+  const handleSave = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    const balanceNum = form.currency === "IDR"
-      ? parseRupiahInput(form.balance)
-      : parseDecimalInput(form.balance);
-    const { data } = await supabase
-      .from("wallets")
-      .insert({
-        user_id: user!.id,
-        name: form.name,
-        balance: balanceNum,
-        color: form.color,
-        currency: form.currency,
-      })
-      .select()
-      .single();
+    if (editTarget) {
+      const { data } = await supabase
+        .from("wallets")
+        .update({ name: form.name, color: form.color, bank: form.bank || null })
+        .eq("id", editTarget.id)
+        .select()
+        .single();
+      if (data) setWallets(wallets.map((w) => (w.id === data.id ? data : w)));
+    } else {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (data) setWallets([...wallets, data]);
+      const balanceNum = form.currency === "IDR"
+        ? parseRupiahInput(form.balance)
+        : parseDecimalInput(form.balance);
+      const { data } = await supabase
+        .from("wallets")
+        .insert({
+          user_id: user!.id,
+          name: form.name,
+          balance: balanceNum,
+          color: form.color,
+          currency: form.currency,
+          bank: form.bank || null,
+          position: wallets.length,
+        })
+        .select()
+        .single();
+
+      if (data) setWallets([...wallets, data]);
+    }
+
     setSaving(false);
     setModalOpen(false);
-    setForm({ name: "", balance: "", color: COLORS[0], currency: "IDR" });
   };
 
   const deleteWallet = async (id: string) => {
@@ -109,10 +249,28 @@ export default function WalletsPage() {
     setWallets(wallets.filter((w) => w.id !== id));
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = wallets.findIndex((w) => w.id === active.id);
+    const newIndex = wallets.findIndex((w) => w.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(wallets, oldIndex, newIndex);
+    setWallets(reordered);
+
+    const supabase = createClient();
+    await Promise.all(
+      reordered.map((w, i) =>
+        w.position === i ? null : supabase.from("wallets").update({ position: i }).eq("id", w.id)
+      )
+    );
+  };
+
   return (
     <FinancePageShell
       action={
-        <Button onClick={() => setModalOpen(true)} size="sm">
+        <Button onClick={openCreate} size="sm">
           <Plus className="h-4 w-4" />
           {t("finance.newWallet")}
         </Button>
@@ -157,6 +315,19 @@ export default function WalletsPage() {
           </CardContent>
         </Card>
 
+        {!loading && wallets.length > 0 && (
+          <div className="mb-4 flex justify-end">
+            <ViewToggle
+              views={[
+                { id: "all" as LayoutView, label: "All wallets", icon: LayoutGrid },
+                { id: "grouped" as LayoutView, label: "Group by bank", icon: Building2 },
+              ]}
+              active={layoutView}
+              onChange={setLayoutView}
+            />
+          </div>
+        )}
+
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -169,70 +340,89 @@ export default function WalletsPage() {
             title="No wallets yet"
             description="Create a wallet to track your balances across accounts."
             action={
-              <Button onClick={() => setModalOpen(true)}>
+              <Button onClick={openCreate}>
                 <Plus className="h-4 w-4" />
                 Create Wallet
               </Button>
             }
           />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {wallets.map((wallet) => (
-              <Card key={wallet.id} className="overflow-hidden">
-                <div className="h-1.5" style={{ backgroundColor: wallet.color }} />
-                <CardContent className="p-5">
-                  <div className="mb-4 flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="flex h-10 w-10 items-center justify-center rounded-lg"
-                        style={{ backgroundColor: `${wallet.color}20` }}
-                      >
-                        <WalletIcon className="h-5 w-5" style={{ color: wallet.color }} />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-slate-900 dark:text-slate-100">{wallet.name}</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{wallet.currency}</p>
-                      </div>
-                    </div>
-                    <IconButton
-                      icon={Trash2}
-                      label={t("common.delete")}
-                      onClick={() => deleteWallet(wallet.id)}
-                      className="text-red-400 hover:text-red-500 dark:hover:text-red-300"
+        ) : layoutView === "grouped" ? (
+          <div className="space-y-6">
+            {groupedWallets.map(([bankKey, group]) => (
+              <div key={bankKey}>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  {bankKey === NO_BANK ? "No bank" : bankKey}
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.map((wallet) => (
+                    <WalletCardBody
+                      key={wallet.id}
+                      wallet={wallet}
+                      onEdit={() => openEdit(wallet)}
+                      onDelete={() => deleteWallet(wallet.id)}
+                      formatBalance={formatBalance}
+                      t={t}
                     />
-                  </div>
-                  <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    {formatBalance(wallet)}
-                  </p>
-                  {wallet.currency && wallet.currency !== "IDR" && (
-                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">↔ Transfer only (foreign currency)</p>
-                  )}
-                </CardContent>
-              </Card>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={wallets.map((w) => w.id)} strategy={rectSortingStrategy}>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {wallets.map((wallet) => (
+                  <SortableWalletCard
+                    key={wallet.id}
+                    wallet={wallet}
+                    onEdit={() => openEdit(wallet)}
+                    onDelete={() => deleteWallet(wallet.id)}
+                    formatBalance={formatBalance}
+                    t={t}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </main>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Wallet">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Edit Wallet" : "New Wallet"}>
         <div className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Wallet Name</label>
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. BCA, Cash, GoPay" />
           </div>
+          {!editTarget && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Currency</label>
+              <Select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value, balance: "" })}>
+                {SUPPORTED_CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.label}</option>
+                ))}
+              </Select>
+            </div>
+          )}
+          {!editTarget && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Initial Balance ({form.currency})
+              </label>
+              <Input value={form.balance} onChange={(e) => setForm({ ...form, balance: e.target.value })} placeholder={form.currency === "IDR" ? "0" : "0.00"} />
+            </div>
+          )}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Currency</label>
-            <Select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value, balance: "" })}>
-              {SUPPORTED_CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.label}</option>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Bank</label>
+            <Select value={form.bank} onChange={(e) => setForm({ ...form, bank: e.target.value })}>
+              <option value="">No bank</option>
+              {banks.map((b) => (
+                <option key={b.id} value={b.name}>{b.name}</option>
               ))}
             </Select>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Initial Balance ({form.currency})
-            </label>
-            <Input value={form.balance} onChange={(e) => setForm({ ...form, balance: e.target.value })} placeholder={form.currency === "IDR" ? "0" : "0.00"} />
+            {banks.length === 0 && (
+              <p className="mt-1 text-xs text-slate-400">Manage your bank list in Settings → Banks.</p>
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Color</label>
@@ -249,8 +439,8 @@ export default function WalletsPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={saving || !form.name.trim()}>
-              {saving ? "Creating..." : "Create"}
+            <Button onClick={handleSave} disabled={saving || !form.name.trim()}>
+              {saving ? "Saving..." : editTarget ? "Save" : "Create"}
             </Button>
           </div>
         </div>

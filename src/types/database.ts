@@ -35,8 +35,36 @@ export interface Note {
   content: string;
   is_pinned: boolean;
   category: string;
+  folder_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface NoteFolder {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserBank {
+  id: string;
+  user_id: string;
+  name: string;
+  position: number;
+  created_at: string;
+}
+
+export interface TransactionCategory {
+  id: string;
+  user_id: string;
+  type: TransactionType;
+  name: string;
+  position: number;
+  created_at: string;
 }
 
 export interface CalendarEvent {
@@ -60,6 +88,8 @@ export interface Wallet {
   currency: string;
   icon: string;
   color: string;
+  bank: string | null;
+  position: number;
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +117,8 @@ export interface SavingsGoal {
   color: string;
   currency: string;
   exchange_rate: number;
+  default_wallet_id: string | null;
+  position: number;
   created_at: string;
   updated_at: string;
 }

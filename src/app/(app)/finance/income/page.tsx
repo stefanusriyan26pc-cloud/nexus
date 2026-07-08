@@ -15,6 +15,8 @@ import {
   type TransactionTypeFilter,
 } from "@/lib/filters/transaction-filters";
 import { sumByType } from "@/lib/finance/analytics";
+import { ensureDefaultCategories } from "@/lib/finance/categories";
+import { contributeToGoal, reverseGoalContribution } from "@/lib/finance/goals";
 import {
   applyWalletDeltaLocally,
   syncWalletForTransaction,
@@ -23,7 +25,7 @@ import {
 import { formatRupiah, parseRupiahInput } from "@/lib/currency";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import type { FinanceTransaction, SavingsGoal, Wallet } from "@/types/database";
+import type { FinanceTransaction, SavingsGoal, TransactionCategory, Wallet } from "@/types/database";
 import {
   addMonths,
   eachDayOfInterval,
@@ -52,21 +54,6 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-const DEFAULT_CATEGORIES = {
-  income: ["Salary", "Freelance", "Investment", "Gift"],
-  expense: ["Food", "Transport", "Shopping", "Bills", "Health", "Entertainment", "Savings"],
-};
-
-const CUSTOM_CATS_KEY = "nexus_custom_categories";
-
-function loadCustomCategories(): { income: string[]; expense: string[] } {
-  try {
-    return JSON.parse(localStorage.getItem(CUSTOM_CATS_KEY) ?? "{}") ?? { income: [], expense: [] };
-  } catch {
-    return { income: [], expense: [] };
-  }
-}
-
 const DAY_HEADERS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type ViewMode = "list" | "calendar";
@@ -76,8 +63,7 @@ export default function IncomeExpensePage() {
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
-  const [customCategories, setCustomCategories] = useState<{ income: string[]; expense: string[] }>({ income: [], expense: [] });
-  const [newCategoryInput, setNewCategoryInput] = useState("");
+  const [txCategories, setTxCategories] = useState<TransactionCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [view, setView] = useState<ViewMode>("list");
@@ -157,17 +143,20 @@ export default function IncomeExpensePage() {
   );
 
   useEffect(() => {
-    setCustomCategories(loadCustomCategories());
     async function load() {
       const supabase = createClient();
-      const [txRes, walletRes, goalsRes] = await Promise.all([
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await ensureDefaultCategories(supabase, user.id);
+      const [txRes, walletRes, goalsRes, catRes] = await Promise.all([
         supabase.from("finance_transactions").select("*").order("created_at", { ascending: false }),
         supabase.from("wallets").select("*"),
         supabase.from("savings_goals").select("*").order("created_at"),
+        supabase.from("transaction_categories").select("*").order("position"),
       ]);
       setTransactions(txRes.data ?? []);
       setWallets(walletRes.data ?? []);
       setGoals(goalsRes.data ?? []);
+      setTxCategories(catRes.data ?? []);
       setLoading(false);
     }
     load();
@@ -192,23 +181,8 @@ export default function IncomeExpensePage() {
       transaction_date: format(new Date(), "yyyy-MM-dd"),
     });
 
-  const addCustomCategory = (type: "income" | "expense") => {
-    const name = newCategoryInput.trim();
-    if (!name) return;
-    const next = {
-      ...customCategories,
-      [type]: [...(customCategories[type] ?? []).filter((c) => c !== name), name],
-    };
-    setCustomCategories(next);
-    localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(next));
-    setForm((f) => ({ ...f, category: name }));
-    setNewCategoryInput("");
-  };
-
-  const allCategories = (type: "income" | "expense") => [
-    ...DEFAULT_CATEGORIES[type],
-    ...(customCategories[type] ?? []),
-  ];
+  const categoriesForType = (type: "income" | "expense") =>
+    txCategories.filter((c) => c.type === type);
 
   const handleSave = async () => {
     const amount = parseRupiahInput(form.amount);
@@ -271,6 +245,25 @@ export default function IncomeExpensePage() {
       }
       setTransactions([...newTxs, ...transactions]);
       setWallets(updatedWallets);
+    } else if (form.type === "expense" && form.goal_id && form.wallet_id) {
+      // Contributing to a savings goal behaves like a transfer: deduct the
+      // chosen wallet and credit the goal, via the shared helper.
+      const goal = goals.find((g) => g.id === form.goal_id);
+      if (goal) {
+        const result = await contributeToGoal(supabase, {
+          userId: user!.id,
+          goal,
+          walletId: form.wallet_id,
+          amount,
+          description: form.description,
+          date: form.transaction_date,
+        });
+        if (result) {
+          setTransactions([result.transaction, ...transactions]);
+          setWallets(applyWalletDeltaLocally(wallets, form.wallet_id, -amount));
+          setGoals((prev) => prev.map((g) => (g.id === result.goal.id ? result.goal : g)));
+        }
+      }
     } else {
       const { data } = await supabase
         .from("finance_transactions")
@@ -297,21 +290,6 @@ export default function IncomeExpensePage() {
           );
         }
       }
-      // Link to savings goal if set
-      if (data && form.goal_id) {
-        const goal = goals.find((g) => g.id === form.goal_id);
-        if (goal) {
-          const newAmount = Number(goal.current_amount) + amount;
-          const supabaseCl = createClient();
-          const { data: updatedGoal } = await supabaseCl
-            .from("savings_goals")
-            .update({ current_amount: newAmount })
-            .eq("id", goal.id)
-            .select()
-            .single();
-          if (updatedGoal) setGoals((prev) => prev.map((g) => (g.id === updatedGoal.id ? updatedGoal : g)));
-        }
-      }
     }
 
     setSaving(false);
@@ -324,10 +302,14 @@ export default function IncomeExpensePage() {
     if (!tx) return;
     const supabase = createClient();
     const nextBalance = await syncWalletForTransaction(supabase, tx, true);
+    const updatedGoal = await reverseGoalContribution(supabase, tx);
     await supabase.from("finance_transactions").delete().eq("id", id);
     setTransactions(transactions.filter((t) => t.id !== id));
     if (tx.wallet_id && nextBalance !== null) {
       setWallets(applyWalletDeltaLocally(wallets, tx.wallet_id, transactionWalletDelta(tx, true)));
+    }
+    if (updatedGoal) {
+      setGoals((prev) => prev.map((g) => (g.id === updatedGoal.id ? updatedGoal : g)));
     }
   };
 
@@ -780,22 +762,11 @@ export default function IncomeExpensePage() {
               <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Category</label>
               <Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
                 <option value="">Select category</option>
-                {allCategories(form.type as "income" | "expense").map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                {categoriesForType(form.type as "income" | "expense").map((c) => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
                 ))}
               </Select>
-              <div className="mt-2 flex gap-2">
-                <Input
-                  value={newCategoryInput}
-                  onChange={(e) => setNewCategoryInput(e.target.value)}
-                  placeholder="Add custom category..."
-                  className="text-xs"
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomCategory(form.type as "income" | "expense"); } }}
-                />
-                <Button type="button" size="sm" variant="outline" onClick={() => addCustomCategory(form.type as "income" | "expense")} disabled={!newCategoryInput.trim()}>
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+              <p className="mt-1 text-xs text-slate-400">Manage categories in Settings → Categories.</p>
             </div>
           )}
           <div>
@@ -855,7 +826,9 @@ export default function IncomeExpensePage() {
               </Select>
               {form.goal_id && (
                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                  Amount will be added to this goal&apos;s progress.
+                  {form.wallet_id
+                    ? "Amount will be deducted from the selected wallet and added to this goal's progress."
+                    : "Select a wallet above — contributing to a goal requires a source wallet."}
                 </p>
               )}
             </div>
@@ -875,7 +848,8 @@ export default function IncomeExpensePage() {
               disabled={
                 saving ||
                 !form.amount ||
-                (form.type === "transfer" && (!form.wallet_id || !form.transferToWalletId))
+                (form.type === "transfer" && (!form.wallet_id || !form.transferToWalletId)) ||
+                (form.type === "expense" && !!form.goal_id && !form.wallet_id)
               }
             >
               {saving ? "Saving..." : "Save"}
