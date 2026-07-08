@@ -18,9 +18,9 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-function getGreeting(name?: string) {
+function getGreeting(t: (k: string) => string, name?: string) {
   const h = new Date().getHours();
-  const greeting = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  const greeting = h < 12 ? t("dashboard.greetingMorning") : h < 17 ? t("dashboard.greetingAfternoon") : t("dashboard.greetingEvening");
   return name ? `${greeting}, ${name.split(" ")[0]}` : greeting;
 }
 
@@ -110,7 +110,7 @@ export default function DashboardPage() {
     <>
       <Header
         title={t("dashboard.title")}
-        subtitle={getGreeting(profile?.full_name ?? undefined)}
+        subtitle={getGreeting(t, profile?.full_name ?? undefined)}
         profile={profile}
       />
       <main className="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -127,7 +127,7 @@ export default function DashboardPage() {
               <StatCard icon={TrendingUp} label={t("dashboard.incomeMonth")} value={formatDisplay(income)} color="text-emerald-600 dark:text-emerald-400" bg="bg-emerald-50 dark:bg-emerald-950/40" href="/finance/income" />
               <StatCard icon={TrendingDown} label={t("dashboard.expensesMonth")} value={formatDisplay(expense)} color="text-red-600 dark:text-red-400" bg="bg-red-50 dark:bg-red-950/40" href="/finance/income" />
               <StatCard icon={Landmark}    label={t("dashboard.totalBalance")}    value={formatDisplay(totalBalance)} color="text-blue-600 dark:text-blue-400"    bg="bg-blue-50 dark:bg-blue-950/40"    href="/finance/wallets" />
-              <StatCard icon={Wallet}      label={t("dashboard.netBalance") + " (bulan ini)"} value={formatDisplay(netBalance)} sub={netBalance >= 0 ? "Surplus" : "Defisit"} color={netBalance >= 0 ? "text-slate-700 dark:text-slate-100" : "text-red-500"} bg="bg-slate-100 dark:bg-slate-800" />
+              <StatCard icon={Wallet}      label={t("dashboard.netBalanceMonth")} value={formatDisplay(netBalance)} sub={netBalance >= 0 ? t("dashboard.surplus") : t("dashboard.deficit")} color={netBalance >= 0 ? "text-slate-700 dark:text-slate-100" : "text-red-500"} bg="bg-slate-100 dark:bg-slate-800" />
               <StatCard icon={CheckSquare} label={t("dashboard.openTasks")}       value={String(tasks.length)} sub={`${tasks.filter(t => t.priority === "high").length} high priority`} color="text-cyan-600 dark:text-cyan-400" bg="bg-cyan-50 dark:bg-cyan-950/40" href="/tasks" />
               <StatCard icon={NotebookPen} label={t("nav.notes")}                 value={String(notes.length)} sub="recent notes" color="text-amber-600 dark:text-amber-400" bg="bg-amber-50 dark:bg-amber-950/40" href="/notes" />
             </div>
@@ -201,7 +201,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 dark:border-slate-800">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
-                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Recent Transactions</h2>
+                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t("dashboard.recentTransactions")}</h2>
                       </div>
                       <Link href="/finance/income" className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400">
                         {t("common.viewAll")} <ArrowRight className="h-3 w-3" />

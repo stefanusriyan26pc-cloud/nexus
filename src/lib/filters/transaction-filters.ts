@@ -9,7 +9,7 @@ import {
   subMonths,
 } from "date-fns";
 
-export type TransactionTypeFilter = "all" | "income" | "expense";
+export type TransactionTypeFilter = "all" | "income" | "expense" | "transfer" | "goals";
 export type TransactionPeriodFilter = "all" | "this_month" | "last_month" | "this_year";
 
 export type TransactionFilters = {
@@ -17,6 +17,7 @@ export type TransactionFilters = {
   category: string;
   period: TransactionPeriodFilter;
   search: string;
+  walletId: string;
 };
 
 export const defaultTransactionFilters: TransactionFilters = {
@@ -24,7 +25,20 @@ export const defaultTransactionFilters: TransactionFilters = {
   category: "all",
   period: "all",
   search: "",
+  walletId: "all",
 };
+
+/**
+ * income/expense are stored directly as the DB `type`; transfers and goal
+ * contributions are both represented as income/expense rows tagged
+ * category "Transfer" (transfers as a linked in/out pair, goal
+ * contributions additionally carrying a `goal_id`).
+ */
+export function getTxKind(tx: Pick<FinanceTransaction, "type" | "category" | "goal_id">): "income" | "expense" | "transfer" | "goal" {
+  if (tx.goal_id) return "goal";
+  if (tx.category === "Transfer") return "transfer";
+  return tx.type;
+}
 
 function inPeriod(dateStr: string, period: TransactionPeriodFilter): boolean {
   if (period === "all") return true;
@@ -52,8 +66,13 @@ export function filterTransactions(
 
   return transactions
     .filter((tx) => {
-      if (filters.type !== "all" && tx.type !== filters.type) return false;
+      if (filters.type !== "all") {
+        const kind = getTxKind(tx);
+        const matches = filters.type === "goals" ? kind === "goal" : kind === filters.type;
+        if (!matches) return false;
+      }
       if (filters.category !== "all" && (tx.category ?? "") !== filters.category) return false;
+      if (filters.walletId !== "all" && tx.wallet_id !== filters.walletId) return false;
       if (!inPeriod(tx.transaction_date, filters.period)) return false;
 
       if (q) {

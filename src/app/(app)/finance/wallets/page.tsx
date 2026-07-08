@@ -15,7 +15,7 @@ import { useCurrencyRates } from "@/components/providers/currency-provider";
 import type { UserBank, Wallet } from "@/types/database";
 import {
   Plus, Trash2, Wallet as WalletIcon, RefreshCw, Loader2, TrendingUp,
-  Pencil, GripVertical, LayoutGrid, Building2,
+  Pencil, GripVertical, LayoutGrid, Building2, ArrowRightLeft,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@/components/providers/i18n-provider";
@@ -46,23 +46,31 @@ function WalletCardBody({
   t: (k: string) => string;
 }) {
   return (
-    <Card className="overflow-hidden">
-      <div className="h-1.5" style={{ backgroundColor: wallet.color }} />
-      <CardContent className="p-5">
-        <div className="mb-4 flex items-start justify-between">
-          <div className="flex items-center gap-3">
+    <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
+      <div className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: wallet.color }} />
+      <CardContent className="p-5 pl-6">
+        <div className="mb-4 flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-3">
             <div
-              className="flex h-10 w-10 items-center justify-center rounded-lg"
-              style={{ backgroundColor: `${wallet.color}20` }}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+              style={{ backgroundColor: `${wallet.color}18` }}
             >
               <WalletIcon className="h-5 w-5" style={{ color: wallet.color }} />
             </div>
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100">{wallet.name}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{wallet.currency}</p>
+            <div className="min-w-0">
+              <h3 className="truncate font-semibold text-slate-900 dark:text-slate-100">{wallet.name}</h3>
+              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
+                <span>{wallet.currency}</span>
+                {wallet.bank && (
+                  <>
+                    <span className="text-slate-300 dark:text-slate-600">·</span>
+                    <span className="truncate">{wallet.bank}</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
             <IconButton icon={Pencil} label={t("common.edit")} onClick={onEdit} />
             <IconButton
               icon={Trash2}
@@ -72,11 +80,14 @@ function WalletCardBody({
             />
           </div>
         </div>
-        <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
+        <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
           {formatBalance(wallet)}
         </p>
         {wallet.currency && wallet.currency !== "IDR" && (
-          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">↔ Transfer only (foreign currency)</p>
+          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+            <ArrowRightLeft className="h-3 w-3" />
+            {t("finance.foreignTransferOnly")}
+          </span>
         )}
       </CardContent>
     </Card>
@@ -274,7 +285,7 @@ export default function WalletsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {t("finance.totalBalance")} {hasForeignWallets && <span className="text-slate-400">(IDR only)</span>}
+                  {t("finance.totalBalance")} {hasForeignWallets && <span className="text-slate-400">{t("finance.idrOnlySuffix")}</span>}
                 </p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{formatDisplay(totalBalanceIDR)}</p>
               </div>
@@ -297,7 +308,7 @@ export default function WalletsPage() {
                     {t("finance.totalAllCurrencies")}
                   </p>
                   <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatDisplay(totalAllInIDR)}</p>
-                  {ratesUpdatedAt && <p className="text-xs text-blue-400">Updated {new Date(ratesUpdatedAt).toLocaleTimeString()} · {t("finance.convertedEstimate")}</p>}
+                  {ratesUpdatedAt && <p className="text-xs text-blue-400">{t("finance.updatedAtPrefix")} {new Date(ratesUpdatedAt).toLocaleTimeString()} · {t("finance.convertedEstimate")}</p>}
                 </div>
               </div>
             )}
@@ -311,8 +322,8 @@ export default function WalletsPage() {
           <div className="mb-4 flex justify-end">
             <ViewToggle
               views={[
-                { id: "all" as LayoutView, label: "All wallets", icon: LayoutGrid },
-                { id: "grouped" as LayoutView, label: "Group by bank", icon: Building2 },
+                { id: "all" as LayoutView, label: t("finance.allWallets"), icon: LayoutGrid },
+                { id: "grouped" as LayoutView, label: t("finance.groupByBank"), icon: Building2 },
               ]}
               active={layoutView}
               onChange={setLayoutView}
@@ -329,12 +340,12 @@ export default function WalletsPage() {
         ) : wallets.length === 0 ? (
           <EmptyState
             icon={WalletIcon}
-            title="No wallets yet"
-            description="Create a wallet to track your balances across accounts."
+            title={t("finance.walletsEmptyTitle")}
+            description={t("finance.walletsEmptyDesc")}
             action={
               <Button onClick={openCreate}>
                 <Plus className="h-4 w-4" />
-                Create Wallet
+                {t("finance.createWallet")}
               </Button>
             }
           />
@@ -343,7 +354,7 @@ export default function WalletsPage() {
             {groupedWallets.map(([bankKey, group]) => (
               <div key={bankKey}>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  {bankKey === NO_BANK ? "No bank" : bankKey}
+                  {bankKey === NO_BANK ? t("finance.noBankGroup") : bankKey}
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {group.map((wallet) => (
@@ -380,15 +391,15 @@ export default function WalletsPage() {
         )}
       </main>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Edit Wallet" : "New Wallet"}>
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? t("finance.editWallet") : t("finance.newWalletTitle")}>
         <div className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Wallet Name</label>
-            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. BCA, Cash, GoPay" />
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("finance.walletNameLabel")}</label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("finance.walletNamePlaceholder")} />
           </div>
           {!editTarget && (
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Currency</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("finance.currencyFieldLabel")}</label>
               <Select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value, balance: "" })}>
                 {SUPPORTED_CURRENCIES.map((c) => (
                   <option key={c.code} value={c.code}>{c.label}</option>
@@ -399,25 +410,25 @@ export default function WalletsPage() {
           {!editTarget && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Initial Balance ({form.currency})
+                {t("finance.initialBalanceLabelPrefix")} ({form.currency})
               </label>
               <Input value={form.balance} onChange={(e) => setForm({ ...form, balance: e.target.value })} placeholder={form.currency === "IDR" ? "0" : "0.00"} />
             </div>
           )}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Bank</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("finance.bankLabel")}</label>
             <Select value={form.bank} onChange={(e) => setForm({ ...form, bank: e.target.value })}>
-              <option value="">No bank</option>
+              <option value="">{t("finance.noBank")}</option>
               {banks.map((b) => (
                 <option key={b.id} value={b.name}>{b.name}</option>
               ))}
             </Select>
             {banks.length === 0 && (
-              <p className="mt-1 text-xs text-slate-400">Manage your bank list in Settings → Banks.</p>
+              <p className="mt-1 text-xs text-slate-400">{t("finance.manageBanksHint")}</p>
             )}
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Color</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("finance.colorLabel")}</label>
             <div className="flex flex-wrap gap-2">
               {COLORS.map((c) => (
                 <button
@@ -430,9 +441,9 @@ export default function WalletsPage() {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setModalOpen(false)}>{t("common.cancel")}</Button>
             <Button onClick={handleSave} disabled={saving || !form.name.trim()}>
-              {saving ? "Saving..." : editTarget ? "Save" : "Create"}
+              {saving ? t("common.saving") : editTarget ? t("common.save") : t("common.create")}
             </Button>
           </div>
         </div>

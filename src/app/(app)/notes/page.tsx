@@ -97,7 +97,7 @@ export default function NotesPage() {
     if (selected) {
       const { data } = await supabase
         .from("notes")
-        .update({ title: title || "Untitled", content, folder_id: formFolderId || null })
+        .update({ title: title || t("notes.untitled"), content, folder_id: formFolderId || null })
         .eq("id", selected.id)
         .select()
         .single();
@@ -105,7 +105,7 @@ export default function NotesPage() {
     } else {
       const { data } = await supabase
         .from("notes")
-        .insert({ user_id: user!.id, title: title || "Untitled", content, folder_id: formFolderId || null })
+        .insert({ user_id: user!.id, title: title || t("notes.untitled"), content, folder_id: formFolderId || null })
         .select()
         .single();
       if (data) setNotes(sortNotes([data, ...notes]));
@@ -273,7 +273,7 @@ export default function NotesPage() {
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Note title"
+            placeholder={t("notes.titlePlaceholder")}
             className="border-0 px-0 text-lg font-semibold focus:ring-0"
           />
           <div>
@@ -288,7 +288,7 @@ export default function NotesPage() {
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Start writing..."
+            placeholder={t("notes.contentPlaceholder")}
             rows={12}
             className="resize-none border-0 px-0 focus:ring-0"
           />

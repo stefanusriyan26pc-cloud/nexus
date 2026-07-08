@@ -9,8 +9,6 @@ import { Modal } from "@/components/ui/modal";
 import { EmptyState, ViewToggle } from "@/components/ui/view-toggle";
 import { useTranslation } from "@/components/providers/i18n-provider";
 import { formatRupiah, formatCurrency, parseRupiahInput, parseDecimalInput, SUPPORTED_CURRENCIES } from "@/lib/currency";
-import { contributeToGoal } from "@/lib/finance/goals";
-import { applyWalletDeltaLocally } from "@/lib/finance/wallets";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { SavingsGoal, Wallet } from "@/types/database";
@@ -44,12 +42,11 @@ function displayAmount(goal: SavingsGoal, amount: number) {
 }
 
 function GoalCardBody({
-  goal, onEdit, onDelete, onDeposit, t,
+  goal, onEdit, onDelete, t,
 }: {
   goal: SavingsGoal;
   onEdit: () => void;
   onDelete: () => void;
-  onDeposit: () => void;
   t: (k: string) => string;
 }) {
   const progress = Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100);
@@ -69,7 +66,7 @@ function GoalCardBody({
               )}
             </div>
             {goal.deadline && (
-              <p className="text-xs text-slate-500 dark:text-slate-400">Target: {format(parseISO(goal.deadline), "MMM d, yyyy")}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{t("finance.deadlinePrefix")} {format(parseISO(goal.deadline), "MMM d, yyyy")}</p>
             )}
           </div>
           <div className="flex items-center gap-1">
@@ -79,18 +76,12 @@ function GoalCardBody({
         </div>
         <div className="mb-2 flex items-end justify-between">
           <span className="text-lg font-bold text-slate-900 dark:text-slate-100">{displayAmount(goal, Number(goal.current_amount))}</span>
-          <span className="text-sm text-slate-500 dark:text-slate-400">of {displayAmount(goal, Number(goal.target_amount))}</span>
+          <span className="text-sm text-slate-500 dark:text-slate-400">{t("finance.ofLabel")} {displayAmount(goal, Number(goal.target_amount))}</span>
         </div>
         <div className="mb-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
           <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: goal.color }} />
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-500 dark:text-slate-400">{progress.toFixed(0)}% {t("finance.complete")}</span>
-          <Button size="sm" variant="outline" onClick={onDeposit}>
-            <Plus className="h-3.5 w-3.5" />
-            {t("finance.addFunds")}
-          </Button>
-        </div>
+        <span className="text-xs text-slate-500 dark:text-slate-400">{progress.toFixed(0)}% {t("finance.complete")}</span>
         {isValas && (
           <p className="mt-2 text-xs text-slate-400">1 {goal.currency} = {formatRupiah(Number(goal.exchange_rate))}</p>
         )}
@@ -103,7 +94,6 @@ function SortableGoalCard(props: {
   goal: SavingsGoal;
   onEdit: () => void;
   onDelete: () => void;
-  onDeposit: () => void;
   t: (k: string) => string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -136,11 +126,8 @@ export default function SavingsPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<SavingsGoal | null>(null);
-  const [depositModal, setDepositModal] = useState<SavingsGoal | null>(null);
-  const [depositWalletId, setDepositWalletId] = useState("");
   const [layoutView, setLayoutView] = useState<LayoutView>("all");
   const [form, setForm] = useState(emptyForm);
-  const [depositAmount, setDepositAmount] = useState("");
   const [saving, setSaving] = useState(false);
 
   const sensors = useSensors(
@@ -171,7 +158,7 @@ export default function SavingsPage() {
     return Array.from(groups.entries());
   }, [goals]);
 
-  const walletName = (id: string) => wallets.find((w) => w.id === id)?.name ?? "No wallet set";
+  const walletName = (id: string) => wallets.find((w) => w.id === id)?.name ?? t("finance.noWalletSet");
 
   const openCreate = () => {
     setEditTarget(null);
@@ -231,39 +218,6 @@ export default function SavingsPage() {
     setForm(emptyForm);
   };
 
-  const openDeposit = (goal: SavingsGoal) => {
-    setDepositModal(goal);
-    setDepositWalletId(goal.default_wallet_id ?? "");
-    setDepositAmount("");
-  };
-
-  const handleDeposit = async () => {
-    if (!depositModal || !depositWalletId) return;
-    const amount = parseRupiahInput(depositAmount);
-    if (!amount) return;
-    setSaving(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const result = await contributeToGoal(supabase, {
-      userId: user!.id,
-      goal: depositModal,
-      walletId: depositWalletId,
-      amount,
-      date: format(new Date(), "yyyy-MM-dd"),
-    });
-
-    if (result) {
-      setGoals(goals.map((g) => (g.id === result.goal.id ? result.goal : g)));
-      setWallets(applyWalletDeltaLocally(wallets, depositWalletId, -amount));
-    }
-
-    setSaving(false);
-    setDepositModal(null);
-    setDepositAmount("");
-    setDepositWalletId("");
-  };
-
   const deleteGoal = async (id: string) => {
     const supabase = createClient();
     await supabase.from("savings_goals").delete().eq("id", id);
@@ -297,11 +251,12 @@ export default function SavingsPage() {
     }>
       <main className="flex-1 overflow-y-auto p-4 sm:p-6">
         {!loading && goals.length > 0 && (
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-400">{t("finance.contributeViaTransactionsHint")}</p>
             <ViewToggle
               views={[
-                { id: "all" as LayoutView, label: "All goals", icon: LayoutGrid },
-                { id: "grouped" as LayoutView, label: "Group by wallet", icon: WalletIcon },
+                { id: "all" as LayoutView, label: t("finance.allGoals"), icon: LayoutGrid },
+                { id: "grouped" as LayoutView, label: t("finance.groupByWallet"), icon: WalletIcon },
               ]}
               active={layoutView}
               onChange={setLayoutView}
@@ -316,15 +271,15 @@ export default function SavingsPage() {
             ))}
           </div>
         ) : goals.length === 0 ? (
-          <EmptyState icon={PiggyBank} title="No savings goals" description="Create a savings goal to track progress toward financial targets." action={
-            <Button onClick={openCreate}><Plus className="h-4 w-4" />Create Goal</Button>
+          <EmptyState icon={PiggyBank} title={t("finance.savingsEmptyTitle")} description={t("finance.savingsEmptyDesc")} action={
+            <Button onClick={openCreate}><Plus className="h-4 w-4" />{t("finance.createGoal")}</Button>
           } />
         ) : layoutView === "grouped" ? (
           <div className="space-y-6">
             {groupedGoals.map(([walletKey, group]) => (
               <div key={walletKey}>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  {walletKey === NO_WALLET ? "No wallet set" : walletName(walletKey)}
+                  {walletKey === NO_WALLET ? t("finance.noWalletSet") : walletName(walletKey)}
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {group.map((goal) => (
@@ -333,7 +288,6 @@ export default function SavingsPage() {
                       goal={goal}
                       onEdit={() => openEdit(goal)}
                       onDelete={() => deleteGoal(goal.id)}
-                      onDeposit={() => openDeposit(goal)}
                       t={t}
                     />
                   ))}
@@ -351,7 +305,6 @@ export default function SavingsPage() {
                     goal={goal}
                     onEdit={() => openEdit(goal)}
                     onDelete={() => deleteGoal(goal.id)}
-                    onDeposit={() => openDeposit(goal)}
                     t={t}
                   />
                 ))}
@@ -361,48 +314,48 @@ export default function SavingsPage() {
         )}
       </main>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Edit Savings Goal" : "New Savings Goal"}>
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? t("finance.editGoal") : t("finance.newGoalTitle")}>
         <div className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Goal Name</label>
-            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Emergency Fund" />
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("finance.goalNameLabel")}</label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("finance.goalNamePlaceholder")} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Currency</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("finance.currencyFieldLabel")}</label>
               <Select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value, exchange_rate: e.target.value === "IDR" ? "1" : form.exchange_rate })}>
                 {SUPPORTED_CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} – {c.symbol}</option>)}
               </Select>
             </div>
             {form.currency !== "IDR" && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Rate (to IDR)</label>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("finance.rateToIdrLabel")}</label>
                 <Input value={form.exchange_rate} onChange={(e) => setForm({ ...form, exchange_rate: e.target.value })} placeholder="e.g. 16000" />
               </div>
             )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Target Amount ({form.currency})
+              {t("finance.targetAmountLabelPrefix")} ({form.currency})
             </label>
-            <Input value={form.target_amount} onChange={(e) => setForm({ ...form, target_amount: e.target.value })} placeholder="e.g. 10000000" />
+            <Input value={form.target_amount} onChange={(e) => setForm({ ...form, target_amount: e.target.value })} placeholder={t("finance.targetAmountPlaceholder")} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Deadline</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("finance.deadlineLabel")}</label>
             <Input type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Default Wallet</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("finance.defaultWalletLabel")}</label>
             <Select value={form.default_wallet_id} onChange={(e) => setForm({ ...form, default_wallet_id: e.target.value })}>
-              <option value="">No default wallet</option>
+              <option value="">{t("finance.noDefaultWallet")}</option>
               {wallets.map((w) => (
                 <option key={w.id} value={w.id}>{w.name}</option>
               ))}
             </Select>
-            <p className="mt-1 text-xs text-slate-400">Used to pre-fill &quot;Add Funds&quot; and to group goals by wallet.</p>
+            <p className="mt-1 text-xs text-slate-400">{t("finance.defaultWalletHint")}</p>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Color</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("finance.colorLabel")}</label>
             <div className="flex flex-wrap gap-2">
               {COLORS.map((c) => (
                 <button key={c} onClick={() => setForm({ ...form, color: c })} className={cn("h-7 w-7 rounded-full transition-transform hover:scale-110", form.color === c ? "ring-2 ring-offset-2 ring-blue-500" : "")} style={{ backgroundColor: c }} />
@@ -410,43 +363,10 @@ export default function SavingsPage() {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving || !form.name.trim()}>{saving ? "Saving..." : editTarget ? "Save" : "Create"}</Button>
+            <Button variant="outline" onClick={() => setModalOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={handleSave} disabled={saving || !form.name.trim()}>{saving ? t("common.saving") : editTarget ? t("common.save") : t("common.create")}</Button>
           </div>
         </div>
-      </Modal>
-
-      <Modal open={!!depositModal} onClose={() => setDepositModal(null)} title={t("finance.addFundsTitle")}>
-        {depositModal && (
-          <div className="space-y-4">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              {t("finance.addingTo")} <strong className="text-slate-900 dark:text-slate-100">{depositModal.name}</strong>
-              {depositModal.currency !== "IDR" && <span className="ml-1 text-amber-600">({depositModal.currency})</span>}
-            </p>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">From Wallet</label>
-              <Select value={depositWalletId} onChange={(e) => setDepositWalletId(e.target.value)}>
-                <option value="">Select wallet</option>
-                {wallets.map((w) => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Amount (IDR)</label>
-              <Input value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="Amount in IDR" autoFocus />
-              {depositModal.currency !== "IDR" && depositAmount && (
-                <p className="mt-1 text-xs text-slate-500">
-                  = {formatCurrency(parseRupiahInput(depositAmount) / (Number(depositModal.exchange_rate) || 1), depositModal.currency)} {depositModal.currency}
-                </p>
-              )}
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDepositModal(null)}>Cancel</Button>
-              <Button onClick={handleDeposit} disabled={saving || !depositWalletId || !depositAmount}>{saving ? "Saving..." : "Add"}</Button>
-            </div>
-          </div>
-        )}
       </Modal>
     </FinancePageShell>
   );

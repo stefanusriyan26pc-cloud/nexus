@@ -89,5 +89,6 @@ export function filterMonthlyTransactions(transactions: FinanceTransaction[]) {
     category: "all",
     period: "this_month",
     search: "",
+    walletId: "all",
   });
 }

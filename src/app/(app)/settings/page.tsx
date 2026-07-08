@@ -32,14 +32,13 @@ const FOLDER_COLORS = [
   "#3b82f6", "#64748b", "#78716c", "#d97706", "#be185d",
 ];
 
-type SectionId = "regional" | "notifications" | "appearance" | "banks" | "categories" | "security";
+type SectionId = "regional" | "notifications" | "appearance" | "configuration" | "security";
 
 const NAV_ITEMS: { id: SectionId; icon: React.ElementType; labelKey: string; subtitleKey: string; color: string }[] = [
   { id: "regional",      icon: Globe,   labelKey: "settings.regional",      subtitleKey: "settings.regionalSub",      color: "indigo" },
   { id: "notifications", icon: Bell,    labelKey: "settings.notifications",  subtitleKey: "settings.notificationsSub", color: "amber"  },
   { id: "appearance",    icon: Moon,    labelKey: "theme.title",             subtitleKey: "settings.appearanceSub",    color: "cyan" },
-  { id: "banks",         icon: Landmark, labelKey: "settings.banks",         subtitleKey: "settings.banksSub",         color: "emerald" },
-  { id: "categories",    icon: Tags,    labelKey: "settings.categories",     subtitleKey: "settings.categoriesSub",    color: "violet" },
+  { id: "configuration", icon: Tags,    labelKey: "settings.configuration",  subtitleKey: "settings.configurationSub", color: "violet" },
   { id: "security",      icon: Shield,  labelKey: "settings.security",       subtitleKey: "settings.securitySub",      color: "red"    },
 ];
 
@@ -209,7 +208,7 @@ export default function SettingsPage() {
   const [newExpenseCat, setNewExpenseCat] = useState("");
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingCatName, setEditingCatName] = useState("");
-  const [catTab, setCatTab] = useState<"folders" | "income" | "expense">("folders");
+  const [catTab, setCatTab] = useState<"banks" | "folders" | "income" | "expense">("banks");
 
   useEffect(() => {
     const saved = localStorage.getItem(NOTIF_KEY);
@@ -363,7 +362,7 @@ export default function SettingsPage() {
     const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
       redirectTo: `${window.location.origin}/auth/callback?next=/profile`,
     });
-    setPwMsg(error ? "Failed to send reset email." : `Reset link sent to ${profile.email}`);
+    setPwMsg(error ? t("settings.resetEmailFailed") : t("settings.resetEmailSent").replace("{email}", profile.email));
     setPwLoading(false);
   };
 
@@ -472,7 +471,7 @@ export default function SettingsPage() {
             {activeSection === "regional" && (
               <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 overflow-hidden">
                 <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-5">
-                  <SectionTitle icon={Globe} title={t("settings.regional")} subtitle="Language and currency" color="indigo" />
+                  <SectionTitle icon={Globe} title={t("settings.regional")} subtitle={t("settings.regionalSub")} color="indigo" />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{t("settings.currencyLabel")}</label>
@@ -497,7 +496,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <ArrowRightLeft className="h-3.5 w-3.5 text-blue-500" />
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Live Exchange Rates</span>
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t("settings.liveRates")}</span>
                       {ratesUpdatedAt && <span className="text-xs text-slate-400">· {new Date(ratesUpdatedAt).toLocaleTimeString()}</span>}
                     </div>
                     <button
@@ -508,7 +507,7 @@ export default function SettingsPage() {
                       {fetchingRates
                         ? <Loader2 className="h-3 w-3 animate-spin" />
                         : <RefreshCw className="h-3 w-3" />}
-                      Refresh
+                      {t("settings.refresh")}
                     </button>
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-y divide-slate-100 dark:divide-slate-800">
@@ -528,7 +527,7 @@ export default function SettingsPage() {
                     })}
                   </div>
                   <div className="border-t border-slate-100 dark:border-slate-800 px-6 py-2.5">
-                    <p className="text-[11px] text-slate-400">Mid-market rates · same reference as Wise.com · open.er-api.com</p>
+                    <p className="text-[11px] text-slate-400">{t("settings.ratesFootnote")}</p>
                   </div>
                 </div>
               </div>
@@ -538,32 +537,32 @@ export default function SettingsPage() {
             {activeSection === "notifications" && (
               <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 overflow-hidden">
                 <div className="px-6 pt-5 pb-1">
-                  <SectionTitle icon={Bell} title={t("settings.notifications")} subtitle="Alert preferences" color="amber" />
+                  <SectionTitle icon={Bell} title={t("settings.notifications")} subtitle={t("settings.notificationsSub")} color="amber" />
                 </div>
                 <div className="divide-y divide-slate-100 dark:divide-slate-800 px-6">
                   <Toggle
                     checked={notifs.tasks}
                     onChange={(v) => saveNotif({ ...notifs, tasks: v })}
-                    label="Task due reminders"
-                    description="Get notified before tasks are due"
+                    label={t("settings.taskReminders")}
+                    description={t("settings.taskRemindersDesc")}
                   />
                   <Toggle
                     checked={notifs.savings}
                     onChange={(v) => saveNotif({ ...notifs, savings: v })}
-                    label="Savings milestones"
-                    description="Celebrate when you hit a goal milestone"
+                    label={t("settings.savingsMilestones")}
+                    description={t("settings.savingsMilestonesDesc")}
                   />
                   <Toggle
                     checked={notifs.finance}
                     onChange={(v) => saveNotif({ ...notifs, finance: v })}
-                    label="Monthly finance summary"
-                    description="Monthly spending recap on the 1st"
+                    label={t("settings.monthlyFinanceSummary")}
+                    description={t("settings.monthlyFinanceSummaryDesc")}
                   />
                 </div>
                 <div className="mx-6 my-4 flex items-start gap-2.5 rounded-xl bg-amber-50 px-4 py-3 dark:bg-amber-900/20">
                   <Bell className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                   <p className="text-xs text-amber-700 dark:text-amber-400">
-                    Preferences are saved locally and activate when browser notifications are enabled.
+                    {t("settings.notifHint")}
                   </p>
                 </div>
               </div>
@@ -578,69 +577,27 @@ export default function SettingsPage() {
             )}
 
             {/* ── Banks ── */}
-            {activeSection === "banks" && (
-              <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
-                <SectionTitle icon={Landmark} title={t("settings.banks")} subtitle={t("settings.banksSub")} color="emerald" count={banks.length} />
-                <div className="mb-5 flex gap-2">
-                  <Input
-                    value={newBankName}
-                    onChange={(e) => setNewBankName(e.target.value)}
-                    placeholder="e.g. BCA, Mandiri, GoPay"
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBank(); } }}
-                  />
-                  <Button onClick={addBank} disabled={!newBankName.trim()}>
-                    <Plus className="h-4 w-4" />
-                    Add
-                  </Button>
-                </div>
-                {banks.length === 0 ? (
-                  <EmptyState
-                    icon={Landmark}
-                    title="No banks yet"
-                    description="Add your bank or e-wallet names above so they show up as a dropdown when creating a wallet."
-                  />
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {banks.map((bank) => (
-                      <TagChip
-                        key={bank.id}
-                        label={bank.name}
-                        editing={editingBankId === bank.id}
-                        onStartEdit={() => startEditBank(bank)}
-                        onDelete={() => deleteBank(bank.id)}
-                        t={t}
-                        editSlot={
-                          <ChipEditForm
-                            value={editingBankName}
-                            onChange={setEditingBankName}
-                            onSave={saveEditBank}
-                            onCancel={() => setEditingBankId(null)}
-                          />
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Categories ── */}
-            {activeSection === "categories" && (
+            {activeSection === "configuration" && (
               <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
                 <SectionTitle
                   icon={Tags}
-                  title={t("settings.categories")}
-                  subtitle={t("settings.categoriesSub")}
+                  title={t("settings.configuration")}
+                  subtitle={t("settings.configurationSub")}
                   color="violet"
-                  count={catTab === "folders" ? folders.length : categories.filter((c) => c.type === catTab).length}
+                  count={
+                    catTab === "banks" ? banks.length
+                    : catTab === "folders" ? folders.length
+                    : categories.filter((c) => c.type === catTab).length
+                  }
                 />
 
                 {/* Tab switcher */}
-                <div className="mb-5 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-800">
+                <div className="mb-5 inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-800">
                   {([
-                    { id: "folders" as const, label: "Note Folders", icon: FolderOpen },
-                    { id: "income" as const, label: "Income", icon: Tags },
-                    { id: "expense" as const, label: "Expense", icon: Tags },
+                    { id: "banks" as const, label: t("settings.banksTab"), icon: Landmark },
+                    { id: "folders" as const, label: t("settings.foldersTab"), icon: FolderOpen },
+                    { id: "income" as const, label: t("settings.incomeTab"), icon: Tags },
+                    { id: "expense" as const, label: t("settings.expenseTab"), icon: Tags },
                   ]).map(({ id, label, icon: Icon }) => (
                     <button
                       key={id}
@@ -658,6 +615,52 @@ export default function SettingsPage() {
                   ))}
                 </div>
 
+                <p className="mb-4 text-xs text-slate-400">
+                  {catTab === "banks" ? t("settings.banksHint") : catTab === "folders" ? t("settings.foldersHint") : t("settings.categoriesHint")}
+                </p>
+
+                {/* Banks tab */}
+                {catTab === "banks" && (
+                  <div>
+                    <div className="mb-5 flex gap-2">
+                      <Input
+                        value={newBankName}
+                        onChange={(e) => setNewBankName(e.target.value)}
+                        placeholder={t("settings.addBankPlaceholder")}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBank(); } }}
+                      />
+                      <Button onClick={addBank} disabled={!newBankName.trim()}>
+                        <Plus className="h-4 w-4" />
+                        {t("common.add")}
+                      </Button>
+                    </div>
+                    {banks.length === 0 ? (
+                      <EmptyState icon={Landmark} title={t("settings.banksTab")} description={t("settings.noBanksYet")} />
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {banks.map((bank) => (
+                          <TagChip
+                            key={bank.id}
+                            label={bank.name}
+                            editing={editingBankId === bank.id}
+                            onStartEdit={() => startEditBank(bank)}
+                            onDelete={() => deleteBank(bank.id)}
+                            t={t}
+                            editSlot={
+                              <ChipEditForm
+                                value={editingBankName}
+                                onChange={setEditingBankName}
+                                onSave={saveEditBank}
+                                onCancel={() => setEditingBankId(null)}
+                              />
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Folders tab */}
                 {catTab === "folders" && (
                   <div>
@@ -665,7 +668,7 @@ export default function SettingsPage() {
                       <Input
                         value={newFolderName}
                         onChange={(e) => setNewFolderName(e.target.value)}
-                        placeholder="e.g. Recipes"
+                        placeholder={t("settings.addFolderPlaceholder")}
                         className="max-w-[200px]"
                         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addFolder(); } }}
                       />
@@ -684,11 +687,11 @@ export default function SettingsPage() {
                       </div>
                       <Button onClick={addFolder} disabled={!newFolderName.trim()}>
                         <Plus className="h-4 w-4" />
-                        Add
+                        {t("common.add")}
                       </Button>
                     </div>
                     {folders.length === 0 ? (
-                      <EmptyState icon={FolderOpen} title="No folders yet" description="Add a folder above so it shows up when organizing notes." />
+                      <EmptyState icon={FolderOpen} title={t("settings.foldersTab")} description={t("settings.noFoldersYet")} />
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {folders.map((folder) => (
@@ -725,16 +728,16 @@ export default function SettingsPage() {
                       <Input
                         value={catTab === "income" ? newIncomeCat : newExpenseCat}
                         onChange={(e) => (catTab === "income" ? setNewIncomeCat(e.target.value) : setNewExpenseCat(e.target.value))}
-                        placeholder={catTab === "income" ? "e.g. Bonus" : "e.g. Subscriptions"}
+                        placeholder={catTab === "income" ? t("settings.addIncomeCatPlaceholder") : t("settings.addExpenseCatPlaceholder")}
                         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCategory(catTab); } }}
                       />
                       <Button onClick={() => addCategory(catTab)} disabled={!(catTab === "income" ? newIncomeCat : newExpenseCat).trim()}>
                         <Plus className="h-4 w-4" />
-                        Add
+                        {t("common.add")}
                       </Button>
                     </div>
                     {categories.filter((c) => c.type === catTab).length === 0 ? (
-                      <EmptyState icon={Tags} title="No categories yet" description="Add a category above so it shows up in the Income/Expense form." />
+                      <EmptyState icon={Tags} title={catTab === "income" ? t("settings.incomeTab") : t("settings.expenseTab")} description={t("settings.noCategoriesYet")} />
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {categories.filter((c) => c.type === catTab).map((cat) => (
@@ -765,7 +768,7 @@ export default function SettingsPage() {
             {/* ── Security ── */}
             {activeSection === "security" && (
               <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
-                <SectionTitle icon={Shield} title={t("settings.security")} subtitle="Account security" color="red" />
+                <SectionTitle icon={Shield} title={t("settings.security")} subtitle={t("settings.securitySub")} color="red" />
                 <div className="space-y-3">
                   <div className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
                     <div className="flex items-center gap-2.5">
@@ -774,11 +777,11 @@ export default function SettingsPage() {
                       </div>
                       <span className="text-sm text-slate-700 dark:text-slate-300">{profile?.email ?? "—"}</span>
                     </div>
-                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Active</span>
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{t("settings.activeStatus")}</span>
                   </div>
                   <Button variant="outline" onClick={handlePasswordReset} disabled={pwLoading || !profile?.email} className="w-full">
                     {pwLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    Send password reset email
+                    {t("settings.sendResetEmail")}
                   </Button>
                   {pwMsg && (
                     <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-900/20">
