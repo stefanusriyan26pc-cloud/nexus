@@ -23,6 +23,7 @@ import {
   transactionWalletDelta,
 } from "@/lib/finance/wallets";
 import { formatRupiah, parseRupiahInput } from "@/lib/currency";
+import { useCurrencyDisplay } from "@/hooks/use-currency-display";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { FinanceTransaction, SavingsGoal, TransactionCategory, Wallet } from "@/types/database";
@@ -60,6 +61,7 @@ type ViewMode = "list" | "calendar";
 
 export default function IncomeExpensePage() {
   const { t } = useTranslation();
+  const { formatDisplay } = useCurrencyDisplay();
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
@@ -445,7 +447,7 @@ export default function IncomeExpensePage() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{t("finance.totalIncome")}</p>
-                  <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">{formatRupiah(income)}</p>
+                  <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">{formatDisplay(income)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -456,7 +458,7 @@ export default function IncomeExpensePage() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{t("finance.totalExpenses")}</p>
-                  <p className="text-lg font-semibold text-red-600 dark:text-red-400">{formatRupiah(expense)}</p>
+                  <p className="text-lg font-semibold text-red-600 dark:text-red-400">{formatDisplay(expense)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -464,7 +466,7 @@ export default function IncomeExpensePage() {
               <CardContent className="flex items-center gap-4 p-5">
                 <div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{t("finance.netBalance")}</p>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{formatRupiah(income - expense)}</p>
+                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{formatDisplay(income - expense)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -516,7 +518,7 @@ export default function IncomeExpensePage() {
                           "text-sm font-semibold",
                           tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                         )}>
-                          {tx.type === "income" ? "+" : "-"}{formatRupiah(Number(tx.amount))}
+                          {tx.type === "income" ? "+" : "-"}{formatDisplay(Number(tx.amount))}
                         </span>
                         <IconButton
                           icon={Trash2}
@@ -613,12 +615,12 @@ export default function IncomeExpensePage() {
                         <div className="mt-1 w-full space-y-0.5">
                           {dayIncome > 0 && (
                             <div className="truncate rounded px-1 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400">
-                              +{formatRupiah(dayIncome)}
+                              +{formatDisplay(dayIncome)}
                             </div>
                           )}
                           {dayExpense > 0 && (
                             <div className="truncate rounded px-1 py-0.5 text-xs font-medium text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-400">
-                              -{formatRupiah(dayExpense)}
+                              -{formatDisplay(dayExpense)}
                             </div>
                           )}
                         </div>
@@ -642,12 +644,12 @@ export default function IncomeExpensePage() {
                     <div className="mt-1 flex gap-3 text-xs">
                       {selectedIncome > 0 && (
                         <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                          +{formatRupiah(selectedIncome)}
+                          +{formatDisplay(selectedIncome)}
                         </span>
                       )}
                       {selectedExpense > 0 && (
                         <span className="font-medium text-red-600 dark:text-red-400">
-                          -{formatRupiah(selectedExpense)}
+                          -{formatDisplay(selectedExpense)}
                         </span>
                       )}
                       {selectedTxs.length === 0 && (
@@ -713,7 +715,7 @@ export default function IncomeExpensePage() {
                         "shrink-0 text-sm font-semibold",
                         tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                       )}>
-                        {tx.type === "income" ? "+" : "-"}{formatRupiah(Number(tx.amount))}
+                        {tx.type === "income" ? "+" : "-"}{formatDisplay(Number(tx.amount))}
                       </span>
                     </div>
                   ))}

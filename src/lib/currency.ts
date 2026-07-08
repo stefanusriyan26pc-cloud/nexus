@@ -11,7 +11,8 @@ export function formatRupiah(amount: number): string {
 
 export function formatCurrency(amount: number, currency: string): string {
   if (currency === "IDR") return formatRupiah(amount);
-  return new Intl.NumberFormat("en-US", {
+  const locale = SUPPORTED_CURRENCIES.find((c) => c.code === currency)?.locale ?? "en-US";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     minimumFractionDigits: 2,

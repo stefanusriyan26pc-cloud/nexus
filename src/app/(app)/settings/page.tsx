@@ -10,11 +10,12 @@ import { useCurrencyPreference } from "@/hooks/use-currency-preference";
 import { useLocalePreference } from "@/hooks/use-locale-preference";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { createClient } from "@/lib/supabase/client";
+import { useCurrencyRates } from "@/components/providers/currency-provider";
 import { ensureDefaultCategories } from "@/lib/finance/categories";
 import { type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { NoteFolder, TransactionCategory, UserBank } from "@/types/database";
-import { IconButton } from "@/components/ui/icon-button";
+import { EmptyState } from "@/components/ui/view-toggle";
 import {
   Bell, Globe, Loader2, Moon, RefreshCw, Shield,
   User, CheckCircle2, ArrowRightLeft, ChevronRight,
@@ -78,19 +79,105 @@ function Toggle({ checked, onChange, label, description }: {
   );
 }
 
-function SectionTitle({ icon: Icon, title, subtitle, color = "indigo" }: {
-  icon: React.ElementType; title: string; subtitle?: string; color?: string;
+function SectionTitle({ icon: Icon, title, subtitle, color = "indigo", count }: {
+  icon: React.ElementType; title: string; subtitle?: string; color?: string; count?: number;
 }) {
   const c = COLOR_MAP[color] ?? COLOR_MAP.indigo;
   return (
-    <div className="flex items-center gap-3 mb-6">
-      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", c.bg, c.icon)}>
-        <Icon className="h-5 w-5" />
+    <div className="mb-6 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", c.bg, c.icon)}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">{title}</h2>
+          {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
+        </div>
       </div>
-      <div>
-        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">{title}</h2>
-        {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
-      </div>
+      {typeof count === "number" && (
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+          {count}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function TagChip({
+  label, color, editing, onStartEdit, onDelete, editSlot, t,
+}: {
+  label: string;
+  color?: string;
+  editing: boolean;
+  onStartEdit: () => void;
+  onDelete: () => void;
+  editSlot: React.ReactNode;
+  t: (k: string) => string;
+}) {
+  if (editing) return <>{editSlot}</>;
+  return (
+    <div className="group flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 py-1.5 pl-3 pr-1.5 text-sm text-slate-700 transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:border-slate-600">
+      {color && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />}
+      <span>{label}</span>
+      <button
+        onClick={onStartEdit}
+        aria-label={t("common.edit")}
+        className="rounded-full p-1 text-slate-400 opacity-0 transition-opacity hover:bg-slate-200 hover:text-slate-600 group-hover:opacity-100 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+      >
+        <Pencil className="h-3 w-3" />
+      </button>
+      <button
+        onClick={onDelete}
+        aria-label={t("common.delete")}
+        className="rounded-full p-1 text-slate-400 opacity-0 transition-opacity hover:bg-red-100 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/30"
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+function ChipEditForm({
+  value, onChange, onSave, onCancel, colorOptions, color, onColorChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  colorOptions?: string[];
+  color?: string;
+  onColorChange?: (c: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-blue-300 bg-blue-50 py-1 pl-3 pr-1 dark:border-blue-700 dark:bg-blue-950/30">
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); onSave(); }
+          if (e.key === "Escape") onCancel();
+        }}
+        autoFocus
+        className="w-28 bg-transparent text-sm text-slate-900 outline-none dark:text-slate-100"
+      />
+      {colorOptions && (
+        <div className="flex items-center gap-1">
+          {colorOptions.map((c) => (
+            <button
+              key={c}
+              onClick={() => onColorChange?.(c)}
+              className={cn("h-4 w-4 rounded-full transition-transform hover:scale-110", color === c ? "ring-2 ring-offset-1 ring-blue-500" : "")}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+      )}
+      <button onClick={onSave} className="rounded-full p-1 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/40">
+        <Check className="h-3.5 w-3.5" />
+      </button>
+      <button onClick={onCancel} className="rounded-full p-1 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+        <X className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -100,9 +187,7 @@ export default function SettingsPage() {
   const { t } = useTranslation();
   const { locale, changeLocale } = useLocalePreference();
   const { currency, changeCurrency } = useCurrencyPreference();
-  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
-  const [fetchingRates, setFetchingRates] = useState(false);
-  const [ratesDate, setRatesDate] = useState<string | null>(null);
+  const { rates: exchangeRates, ratesUpdatedAt, ratesLoading: fetchingRates, refreshRates } = useCurrencyRates();
   const [notifs, setNotifs] = useState({ tasks: true, savings: true, finance: false });
   const [pwLoading, setPwLoading] = useState(false);
   const [pwMsg, setPwMsg] = useState<string | null>(null);
@@ -124,6 +209,7 @@ export default function SettingsPage() {
   const [newExpenseCat, setNewExpenseCat] = useState("");
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingCatName, setEditingCatName] = useState("");
+  const [catTab, setCatTab] = useState<"folders" | "income" | "expense">("folders");
 
   useEffect(() => {
     const saved = localStorage.getItem(NOTIF_KEY);
@@ -270,19 +356,6 @@ export default function SettingsPage() {
     localStorage.setItem(NOTIF_KEY, JSON.stringify(next));
   };
 
-  const fetchRates = async () => {
-    setFetchingRates(true);
-    try {
-      const res = await fetch("https://open.er-api.com/v6/latest/IDR");
-      const json = await res.json();
-      if (json.rates) {
-        setExchangeRates(json.rates);
-        setRatesDate(new Date().toLocaleTimeString());
-      }
-    } catch { /* ignore */ }
-    finally { setFetchingRates(false); }
-  };
-
   const handlePasswordReset = async () => {
     if (!profile?.email) return;
     setPwLoading(true);
@@ -425,10 +498,10 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <ArrowRightLeft className="h-3.5 w-3.5 text-blue-500" />
                       <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Live Exchange Rates</span>
-                      {ratesDate && <span className="text-xs text-slate-400">· {ratesDate}</span>}
+                      {ratesUpdatedAt && <span className="text-xs text-slate-400">· {new Date(ratesUpdatedAt).toLocaleTimeString()}</span>}
                     </div>
                     <button
-                      onClick={fetchRates}
+                      onClick={refreshRates}
                       disabled={fetchingRates}
                       className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 disabled:opacity-50 transition-colors"
                     >
@@ -507,8 +580,8 @@ export default function SettingsPage() {
             {/* ── Banks ── */}
             {activeSection === "banks" && (
               <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
-                <SectionTitle icon={Landmark} title={t("settings.banks")} subtitle={t("settings.banksSub")} color="emerald" />
-                <div className="flex gap-2">
+                <SectionTitle icon={Landmark} title={t("settings.banks")} subtitle={t("settings.banksSub")} color="emerald" count={banks.length} />
+                <div className="mb-5 flex gap-2">
                   <Input
                     value={newBankName}
                     onChange={(e) => setNewBankName(e.target.value)}
@@ -521,36 +594,30 @@ export default function SettingsPage() {
                   </Button>
                 </div>
                 {banks.length === 0 ? (
-                  <p className="mt-4 text-sm text-slate-400">No banks yet — add one above so it shows up in the wallet form.</p>
+                  <EmptyState
+                    icon={Landmark}
+                    title="No banks yet"
+                    description="Add your bank or e-wallet names above so they show up as a dropdown when creating a wallet."
+                  />
                 ) : (
-                  <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+                  <div className="flex flex-wrap gap-2">
                     {banks.map((bank) => (
-                      <div key={bank.id} className="flex items-center justify-between py-2.5">
-                        {editingBankId === bank.id ? (
-                          <Input
+                      <TagChip
+                        key={bank.id}
+                        label={bank.name}
+                        editing={editingBankId === bank.id}
+                        onStartEdit={() => startEditBank(bank)}
+                        onDelete={() => deleteBank(bank.id)}
+                        t={t}
+                        editSlot={
+                          <ChipEditForm
                             value={editingBankName}
-                            onChange={(e) => setEditingBankName(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveEditBank(); } }}
-                            autoFocus
-                            className="max-w-xs"
+                            onChange={setEditingBankName}
+                            onSave={saveEditBank}
+                            onCancel={() => setEditingBankId(null)}
                           />
-                        ) : (
-                          <span className="text-sm text-slate-700 dark:text-slate-300">{bank.name}</span>
-                        )}
-                        <div className="flex items-center gap-1">
-                          {editingBankId === bank.id ? (
-                            <>
-                              <IconButton icon={Check} label="Save" onClick={saveEditBank} />
-                              <IconButton icon={X} label="Cancel" onClick={() => setEditingBankId(null)} />
-                            </>
-                          ) : (
-                            <>
-                              <IconButton icon={Pencil} label={t("common.edit")} onClick={() => startEditBank(bank)} />
-                              <IconButton icon={Trash2} label={t("common.delete")} onClick={() => deleteBank(bank.id)} className="text-red-400 hover:text-red-500" />
-                            </>
-                          )}
-                        </div>
-                      </div>
+                        }
+                      />
                     ))}
                   </div>
                 )}
@@ -559,147 +626,139 @@ export default function SettingsPage() {
 
             {/* ── Categories ── */}
             {activeSection === "categories" && (
-              <div className="space-y-6">
-                {/* Note folders */}
-                <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
-                  <SectionTitle icon={FolderOpen} title="Note Folders" subtitle="Used to organize your notes" color="violet" />
-                  <div className="flex flex-wrap items-start gap-2">
-                    <Input
-                      value={newFolderName}
-                      onChange={(e) => setNewFolderName(e.target.value)}
-                      placeholder="e.g. Recipes"
-                      className="max-w-xs"
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addFolder(); } }}
-                    />
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {FOLDER_COLORS.map((c) => (
-                        <button
-                          key={c}
-                          onClick={() => setNewFolderColor(c)}
-                          className={cn(
-                            "h-6 w-6 rounded-full transition-transform hover:scale-110",
-                            newFolderColor === c ? "ring-2 ring-offset-2 ring-blue-500" : ""
-                          )}
-                          style={{ backgroundColor: c }}
-                        />
-                      ))}
-                    </div>
-                    <Button onClick={addFolder} disabled={!newFolderName.trim()}>
-                      <Plus className="h-4 w-4" />
-                      Add
-                    </Button>
-                  </div>
-                  {folders.length === 0 ? (
-                    <p className="mt-4 text-sm text-slate-400">No folders yet — add one above so it shows up in Notes.</p>
-                  ) : (
-                    <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
-                      {folders.map((folder) => (
-                        <div key={folder.id} className="flex items-center justify-between py-2.5">
-                          {editingFolderId === folder.id ? (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                value={editingFolderName}
-                                onChange={(e) => setEditingFolderName(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveEditFolder(); } }}
-                                autoFocus
-                                className="max-w-xs"
-                              />
-                              <div className="flex items-center gap-1">
-                                {FOLDER_COLORS.map((c) => (
-                                  <button
-                                    key={c}
-                                    onClick={() => setEditingFolderColor(c)}
-                                    className={cn(
-                                      "h-5 w-5 rounded-full transition-transform hover:scale-110",
-                                      editingFolderColor === c ? "ring-2 ring-offset-1 ring-blue-500" : ""
-                                    )}
-                                    style={{ backgroundColor: c }}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: folder.color }} />
-                              {folder.name}
-                            </span>
-                          )}
-                          <div className="flex items-center gap-1">
-                            {editingFolderId === folder.id ? (
-                              <>
-                                <IconButton icon={Check} label="Save" onClick={saveEditFolder} />
-                                <IconButton icon={X} label="Cancel" onClick={() => setEditingFolderId(null)} />
-                              </>
-                            ) : (
-                              <>
-                                <IconButton icon={Pencil} label={t("common.edit")} onClick={() => startEditFolder(folder)} />
-                                <IconButton icon={Trash2} label={t("common.delete")} onClick={() => deleteFolder(folder)} className="text-red-400 hover:text-red-500" />
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
+                <SectionTitle
+                  icon={Tags}
+                  title={t("settings.categories")}
+                  subtitle={t("settings.categoriesSub")}
+                  color="violet"
+                  count={catTab === "folders" ? folders.length : categories.filter((c) => c.type === catTab).length}
+                />
+
+                {/* Tab switcher */}
+                <div className="mb-5 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-800">
+                  {([
+                    { id: "folders" as const, label: "Note Folders", icon: FolderOpen },
+                    { id: "income" as const, label: "Income", icon: Tags },
+                    { id: "expense" as const, label: "Expense", icon: Tags },
+                  ]).map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      onClick={() => setCatTab(id)}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                        catTab === id
+                          ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100"
+                          : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Transaction categories */}
-                {(["income", "expense"] as const).map((type) => (
-                  <div key={type} className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 px-6 py-5">
-                    <SectionTitle
-                      icon={Tags}
-                      title={type === "income" ? "Income Categories" : "Expense Categories"}
-                      subtitle="Used in the Income/Expense form"
-                      color="violet"
-                    />
-                    <div className="flex gap-2">
+                {/* Folders tab */}
+                {catTab === "folders" && (
+                  <div>
+                    <div className="mb-5 flex flex-wrap items-center gap-2">
                       <Input
-                        value={type === "income" ? newIncomeCat : newExpenseCat}
-                        onChange={(e) => (type === "income" ? setNewIncomeCat(e.target.value) : setNewExpenseCat(e.target.value))}
-                        placeholder={type === "income" ? "e.g. Bonus" : "e.g. Subscriptions"}
-                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCategory(type); } }}
+                        value={newFolderName}
+                        onChange={(e) => setNewFolderName(e.target.value)}
+                        placeholder="e.g. Recipes"
+                        className="max-w-[200px]"
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addFolder(); } }}
                       />
-                      <Button onClick={() => addCategory(type)} disabled={!(type === "income" ? newIncomeCat : newExpenseCat).trim()}>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {FOLDER_COLORS.map((c) => (
+                          <button
+                            key={c}
+                            onClick={() => setNewFolderColor(c)}
+                            className={cn(
+                              "h-6 w-6 rounded-full transition-transform hover:scale-110",
+                              newFolderColor === c ? "ring-2 ring-offset-2 ring-blue-500" : ""
+                            )}
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                      <Button onClick={addFolder} disabled={!newFolderName.trim()}>
                         <Plus className="h-4 w-4" />
                         Add
                       </Button>
                     </div>
-                    {categories.filter((c) => c.type === type).length === 0 ? (
-                      <p className="mt-4 text-sm text-slate-400">No categories yet — add one above.</p>
+                    {folders.length === 0 ? (
+                      <EmptyState icon={FolderOpen} title="No folders yet" description="Add a folder above so it shows up when organizing notes." />
                     ) : (
-                      <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
-                        {categories.filter((c) => c.type === type).map((cat) => (
-                          <div key={cat.id} className="flex items-center justify-between py-2.5">
-                            {editingCatId === cat.id ? (
-                              <Input
-                                value={editingCatName}
-                                onChange={(e) => setEditingCatName(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveEditCategory(); } }}
-                                autoFocus
-                                className="max-w-xs"
+                      <div className="flex flex-wrap gap-2">
+                        {folders.map((folder) => (
+                          <TagChip
+                            key={folder.id}
+                            label={folder.name}
+                            color={folder.color}
+                            editing={editingFolderId === folder.id}
+                            onStartEdit={() => startEditFolder(folder)}
+                            onDelete={() => deleteFolder(folder)}
+                            t={t}
+                            editSlot={
+                              <ChipEditForm
+                                value={editingFolderName}
+                                onChange={setEditingFolderName}
+                                onSave={saveEditFolder}
+                                onCancel={() => setEditingFolderId(null)}
+                                colorOptions={FOLDER_COLORS}
+                                color={editingFolderColor}
+                                onColorChange={setEditingFolderColor}
                               />
-                            ) : (
-                              <span className="text-sm text-slate-700 dark:text-slate-300">{cat.name}</span>
-                            )}
-                            <div className="flex items-center gap-1">
-                              {editingCatId === cat.id ? (
-                                <>
-                                  <IconButton icon={Check} label="Save" onClick={saveEditCategory} />
-                                  <IconButton icon={X} label="Cancel" onClick={() => setEditingCatId(null)} />
-                                </>
-                              ) : (
-                                <>
-                                  <IconButton icon={Pencil} label={t("common.edit")} onClick={() => startEditCategory(cat)} />
-                                  <IconButton icon={Trash2} label={t("common.delete")} onClick={() => deleteCategory(cat.id)} className="text-red-400 hover:text-red-500" />
-                                </>
-                              )}
-                            </div>
-                          </div>
+                            }
+                          />
                         ))}
                       </div>
                     )}
                   </div>
-                ))}
+                )}
+
+                {/* Income / Expense tabs */}
+                {(catTab === "income" || catTab === "expense") && (
+                  <div>
+                    <div className="mb-5 flex gap-2">
+                      <Input
+                        value={catTab === "income" ? newIncomeCat : newExpenseCat}
+                        onChange={(e) => (catTab === "income" ? setNewIncomeCat(e.target.value) : setNewExpenseCat(e.target.value))}
+                        placeholder={catTab === "income" ? "e.g. Bonus" : "e.g. Subscriptions"}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCategory(catTab); } }}
+                      />
+                      <Button onClick={() => addCategory(catTab)} disabled={!(catTab === "income" ? newIncomeCat : newExpenseCat).trim()}>
+                        <Plus className="h-4 w-4" />
+                        Add
+                      </Button>
+                    </div>
+                    {categories.filter((c) => c.type === catTab).length === 0 ? (
+                      <EmptyState icon={Tags} title="No categories yet" description="Add a category above so it shows up in the Income/Expense form." />
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {categories.filter((c) => c.type === catTab).map((cat) => (
+                          <TagChip
+                            key={cat.id}
+                            label={cat.name}
+                            editing={editingCatId === cat.id}
+                            onStartEdit={() => startEditCategory(cat)}
+                            onDelete={() => deleteCategory(cat.id)}
+                            t={t}
+                            editSlot={
+                              <ChipEditForm
+                                value={editingCatName}
+                                onChange={setEditingCatName}
+                                onSave={saveEditCategory}
+                                onCancel={() => setEditingCatId(null)}
+                              />
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

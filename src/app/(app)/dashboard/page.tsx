@@ -5,7 +5,7 @@ import { useProfile } from "@/components/layout/profile-provider";
 import { useTranslation } from "@/components/providers/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatRupiah } from "@/lib/currency";
+import { useCurrencyDisplay } from "@/hooks/use-currency-display";
 import { totalWalletBalance } from "@/lib/finance/wallets";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -49,6 +49,7 @@ function StatCard({ icon: Icon, label, value, sub, color, bg, href }: {
 export default function DashboardPage() {
   const profile = useProfile();
   const { t } = useTranslation();
+  const { formatDisplay } = useCurrencyDisplay();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
@@ -123,10 +124,10 @@ export default function DashboardPage() {
           <>
             {/* Stats row */}
             <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard icon={TrendingUp} label={t("dashboard.incomeMonth")} value={formatRupiah(income)} color="text-emerald-600 dark:text-emerald-400" bg="bg-emerald-50 dark:bg-emerald-950/40" href="/finance/income" />
-              <StatCard icon={TrendingDown} label={t("dashboard.expensesMonth")} value={formatRupiah(expense)} color="text-red-600 dark:text-red-400" bg="bg-red-50 dark:bg-red-950/40" href="/finance/income" />
-              <StatCard icon={Landmark}    label={t("dashboard.totalBalance")}    value={formatRupiah(totalBalance)} color="text-blue-600 dark:text-blue-400"    bg="bg-blue-50 dark:bg-blue-950/40"    href="/finance/wallets" />
-              <StatCard icon={Wallet}      label={t("dashboard.netBalance") + " (bulan ini)"} value={formatRupiah(netBalance)} sub={netBalance >= 0 ? "Surplus" : "Defisit"} color={netBalance >= 0 ? "text-slate-700 dark:text-slate-100" : "text-red-500"} bg="bg-slate-100 dark:bg-slate-800" />
+              <StatCard icon={TrendingUp} label={t("dashboard.incomeMonth")} value={formatDisplay(income)} color="text-emerald-600 dark:text-emerald-400" bg="bg-emerald-50 dark:bg-emerald-950/40" href="/finance/income" />
+              <StatCard icon={TrendingDown} label={t("dashboard.expensesMonth")} value={formatDisplay(expense)} color="text-red-600 dark:text-red-400" bg="bg-red-50 dark:bg-red-950/40" href="/finance/income" />
+              <StatCard icon={Landmark}    label={t("dashboard.totalBalance")}    value={formatDisplay(totalBalance)} color="text-blue-600 dark:text-blue-400"    bg="bg-blue-50 dark:bg-blue-950/40"    href="/finance/wallets" />
+              <StatCard icon={Wallet}      label={t("dashboard.netBalance") + " (bulan ini)"} value={formatDisplay(netBalance)} sub={netBalance >= 0 ? "Surplus" : "Defisit"} color={netBalance >= 0 ? "text-slate-700 dark:text-slate-100" : "text-red-500"} bg="bg-slate-100 dark:bg-slate-800" />
               <StatCard icon={CheckSquare} label={t("dashboard.openTasks")}       value={String(tasks.length)} sub={`${tasks.filter(t => t.priority === "high").length} high priority`} color="text-cyan-600 dark:text-cyan-400" bg="bg-cyan-50 dark:bg-cyan-950/40" href="/tasks" />
               <StatCard icon={NotebookPen} label={t("nav.notes")}                 value={String(notes.length)} sub="recent notes" color="text-amber-600 dark:text-amber-400" bg="bg-amber-50 dark:bg-amber-950/40" href="/notes" />
             </div>
@@ -231,7 +232,7 @@ export default function DashboardPage() {
                             <span className={cn("text-sm font-semibold",
                               tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                             )}>
-                              {tx.type === "income" ? "+" : "-"}{formatRupiah(Number(tx.amount))}
+                              {tx.type === "income" ? "+" : "-"}{formatDisplay(Number(tx.amount))}
                             </span>
                           </li>
                         ))}
@@ -269,7 +270,7 @@ export default function DashboardPage() {
                               <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                                 <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: goal.color }} />
                               </div>
-                              <p className="mt-1 text-xs text-slate-400">{formatRupiah(Number(goal.current_amount))} / {formatRupiah(Number(goal.target_amount))}</p>
+                              <p className="mt-1 text-xs text-slate-400">{formatDisplay(Number(goal.current_amount))} / {formatDisplay(Number(goal.target_amount))}</p>
                             </div>
                           );
                         })}

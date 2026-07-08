@@ -3,7 +3,7 @@
 import { FinancePageShell } from "@/components/layout/finance-page-shell";
 import { useTranslation } from "@/components/providers/i18n-provider";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatRupiah } from "@/lib/currency";
+import { useCurrencyDisplay } from "@/hooks/use-currency-display";
 import { computeFinanceHealth } from "@/lib/finance/analytics";
 import { createClient } from "@/lib/supabase/client";
 import type { FinanceTransaction, SavingsGoal, Wallet } from "@/types/database";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 export default function FinanceAnalyticsPage() {
   const { t } = useTranslation();
+  const { formatDisplay } = useCurrencyDisplay();
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
@@ -124,19 +125,19 @@ export default function FinanceAnalyticsPage() {
               <MetricCard
                 icon={TrendingUp}
                 label={t("finance.monthlyIncome")}
-                value={formatRupiah(health.monthlyIncome)}
+                value={formatDisplay(health.monthlyIncome)}
                 tone="emerald"
               />
               <MetricCard
                 icon={TrendingDown}
                 label={t("finance.monthlyExpenses")}
-                value={formatRupiah(health.monthlyExpense)}
+                value={formatDisplay(health.monthlyExpense)}
                 tone="red"
               />
               <MetricCard
                 icon={WalletIcon}
                 label={t("finance.totalBalance")}
-                value={formatRupiah(health.walletTotal)}
+                value={formatDisplay(health.walletTotal)}
                 tone="slate"
               />
               <MetricCard
@@ -164,7 +165,7 @@ export default function FinanceAnalyticsPage() {
                           <div className="mb-1 flex justify-between text-sm">
                             <span className="text-slate-700 dark:text-slate-300">{category}</span>
                             <span className="font-medium text-slate-900 dark:text-slate-100">
-                              {formatRupiah(amount)}
+                              {formatDisplay(amount)}
                             </span>
                           </div>
                           <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
@@ -243,7 +244,7 @@ export default function FinanceAnalyticsPage() {
                   )}
                 >
                   {health.netBalance >= 0 ? "+" : ""}
-                  {formatRupiah(health.netBalance)}
+                  {formatDisplay(health.netBalance)}
                 </p>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   {t("finance.monthlyNetHint")}

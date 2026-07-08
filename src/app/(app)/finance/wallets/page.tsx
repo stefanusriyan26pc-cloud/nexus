@@ -10,6 +10,8 @@ import { EmptyState, ViewToggle } from "@/components/ui/view-toggle";
 import { formatCurrency, formatRupiah, parseRupiahInput, parseDecimalInput, SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { Select } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { useCurrencyDisplay } from "@/hooks/use-currency-display";
+import { useCurrencyRates } from "@/components/providers/currency-provider";
 import type { UserBank, Wallet } from "@/types/database";
 import {
   Plus, Trash2, Wallet as WalletIcon, RefreshCw, Loader2, TrendingUp,
@@ -113,6 +115,8 @@ function SortableWalletCard(props: {
 
 export default function WalletsPage() {
   const { t } = useTranslation();
+  const { formatDisplay } = useCurrencyDisplay();
+  const { rates, ratesUpdatedAt, ratesLoading, refreshRates } = useCurrencyRates();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [banks, setBanks] = useState<UserBank[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,9 +125,6 @@ export default function WalletsPage() {
   const [layoutView, setLayoutView] = useState<LayoutView>("all");
   const [form, setForm] = useState({ name: "", balance: "", color: COLORS[0], currency: "IDR", bank: "" });
   const [saving, setSaving] = useState(false);
-  const [rates, setRates] = useState<Record<string, number>>({});
-  const [fetchingRates, setFetchingRates] = useState(false);
-  const [ratesDate, setRatesDate] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -146,15 +147,6 @@ export default function WalletsPage() {
   // Only sum IDR wallets for the total (foreign wallets have different currency)
   const totalBalanceIDR = wallets.filter((w) => !w.currency || w.currency === "IDR").reduce((s, w) => s + Number(w.balance), 0);
   const hasForeignWallets = wallets.some((w) => w.currency && w.currency !== "IDR");
-
-  const fetchRates = async () => {
-    setFetchingRates(true);
-    try {
-      const res = await fetch("https://open.er-api.com/v6/latest/IDR");
-      const json = await res.json();
-      if (json.rates) { setRates(json.rates); setRatesDate(new Date().toLocaleTimeString()); }
-    } catch { /* ignore */ } finally { setFetchingRates(false); }
-  };
 
   const toIDR = (amount: number, currency: string): number => {
     if (!currency || currency === "IDR") return amount;
@@ -284,16 +276,16 @@ export default function WalletsPage() {
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {t("finance.totalBalance")} {hasForeignWallets && <span className="text-slate-400">(IDR only)</span>}
                 </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{formatRupiah(totalBalanceIDR)}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{formatDisplay(totalBalanceIDR)}</p>
               </div>
               {hasForeignWallets && (
                 <button
-                  onClick={fetchRates}
-                  disabled={fetchingRates}
+                  onClick={refreshRates}
+                  disabled={ratesLoading}
                   className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
-                  {fetchingRates ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                  {fetchingRates ? t("finance.fetchingRates") : t("finance.fetchRates")}
+                  {ratesLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                  {ratesLoading ? t("finance.fetchingRates") : t("finance.fetchRates")}
                 </button>
               )}
             </div>
@@ -304,8 +296,8 @@ export default function WalletsPage() {
                     <TrendingUp className="mr-1 inline h-3.5 w-3.5" />
                     {t("finance.totalAllCurrencies")}
                   </p>
-                  <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatRupiah(totalAllInIDR)}</p>
-                  {ratesDate && <p className="text-xs text-blue-400">Updated {ratesDate} · {t("finance.convertedEstimate")}</p>}
+                  <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatDisplay(totalAllInIDR)}</p>
+                  {ratesUpdatedAt && <p className="text-xs text-blue-400">Updated {new Date(ratesUpdatedAt).toLocaleTimeString()} · {t("finance.convertedEstimate")}</p>}
                 </div>
               </div>
             )}

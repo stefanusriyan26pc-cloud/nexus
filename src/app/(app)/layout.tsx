@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { ProfileProvider } from "@/components/layout/profile-provider";
+import { CurrencyProvider } from "@/components/providers/currency-provider";
 import { LocaleSync } from "@/components/providers/locale-sync";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/database";
@@ -26,8 +27,10 @@ export default async function AppLayout({
 
   return (
     <ProfileProvider profile={profile}>
-      <LocaleSync language={profile?.language} />
-      <AppShell>{children}</AppShell>
+      <CurrencyProvider>
+        <LocaleSync language={profile?.language} />
+        <AppShell>{children}</AppShell>
+      </CurrencyProvider>
     </ProfileProvider>
   );
 }
