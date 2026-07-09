@@ -1,5 +1,39 @@
 import type { FinanceTransaction, SavingsGoal, Wallet } from "@/types/database";
 import { filterTransactions, getMonthStart } from "@/lib/filters/transaction-filters";
+import { endOfMonth, format, isWithinInterval, parseISO, startOfMonth, subMonths } from "date-fns";
+
+export type MonthlyTrendPoint = {
+  key: string;
+  label: string;
+  income: number;
+  expense: number;
+};
+
+/** Income/expense totals for each of the last `months` calendar months, oldest first. */
+export function getMonthlyTrend(
+  transactions: FinanceTransaction[],
+  months = 6
+): MonthlyTrendPoint[] {
+  const now = new Date();
+  const points: MonthlyTrendPoint[] = [];
+
+  for (let i = months - 1; i >= 0; i--) {
+    const monthDate = subMonths(now, i);
+    const start = startOfMonth(monthDate);
+    const end = endOfMonth(monthDate);
+    const inMonth = transactions.filter((t) =>
+      isWithinInterval(parseISO(t.transaction_date), { start, end })
+    );
+    points.push({
+      key: format(monthDate, "yyyy-MM"),
+      label: format(monthDate, "MMM"),
+      income: sumByType(inMonth, "income"),
+      expense: sumByType(inMonth, "expense"),
+    });
+  }
+
+  return points;
+}
 
 export type FinanceHealth = {
   score: number;

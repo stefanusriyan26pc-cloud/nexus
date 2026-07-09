@@ -39,7 +39,7 @@ export function NoteGrid({
                 onTogglePin(note);
               }}
               className={cn(
-                "opacity-0 transition-opacity group-hover:opacity-100",
+                "opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100",
                 note.is_pinned && "text-amber-500 opacity-100"
               )}
             >

@@ -121,14 +121,14 @@ function TagChip({
       <button
         onClick={onStartEdit}
         aria-label={t("common.edit")}
-        className="rounded-full p-1 text-slate-400 opacity-0 transition-opacity hover:bg-slate-200 hover:text-slate-600 group-hover:opacity-100 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+        className="rounded-full p-1 text-slate-400 opacity-100 transition-opacity hover:bg-slate-200 hover:text-slate-600 sm:opacity-0 sm:group-hover:opacity-100 dark:hover:bg-slate-700 dark:hover:text-slate-300"
       >
         <Pencil className="h-3 w-3" />
       </button>
       <button
         onClick={onDelete}
         aria-label={t("common.delete")}
-        className="rounded-full p-1 text-slate-400 opacity-0 transition-opacity hover:bg-red-100 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/30"
+        className="rounded-full p-1 text-slate-400 opacity-100 transition-opacity hover:bg-red-100 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 dark:hover:bg-red-900/30"
       >
         <Trash2 className="h-3 w-3" />
       </button>

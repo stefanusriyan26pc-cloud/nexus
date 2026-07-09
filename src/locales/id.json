@@ -234,6 +234,8 @@
     "savingsOverview": "Target Tabungan",
     "overallProgress": "Progres keseluruhan",
     "monthlyNetHint": "Pemasukan dikurangi pengeluaran untuk bulan berjalan.",
+    "monthlyTrend": "Pemasukan vs Pengeluaran (6 bulan)",
+    "balanceTrend": "Tren Saldo (6 bulan)",
     "totalAllCurrencies": "Total Semua Dompet (dalam IDR)",
     "fetchRates": "Ambil kurs mata uang",
     "fetchingRates": "Mengambil kurs...",

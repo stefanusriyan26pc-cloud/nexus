@@ -111,6 +111,8 @@ export default function IncomeExpensePage() {
   const categories = useMemo(() => getTransactionCategories(transactions), [transactions]);
   const income = sumByType(filteredTransactions, "income");
   const expense = sumByType(filteredTransactions, "expense");
+  const showIncomeCard = typeFilter !== "expense";
+  const showExpenseCard = typeFilter !== "income";
 
   const txByDate = useMemo(() => {
     const map: Record<string, FinanceTransaction[]> = {};
@@ -465,38 +467,47 @@ export default function IncomeExpensePage() {
             </div>
           </div>
 
-          {/* Summary cards */}
-          <div className="mb-6 grid gap-4 sm:grid-cols-3">
-            <Card>
-              <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/40">
-                  <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t("finance.totalIncome")}</p>
-                  <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">{formatDisplay(income)}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 dark:bg-red-950/40">
-                  <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t("finance.totalExpenses")}</p>
-                  <p className="text-lg font-semibold text-red-600 dark:text-red-400">{formatDisplay(expense)}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="flex items-center gap-4 p-5">
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t("finance.netBalance")}</p>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{formatDisplay(income - expense)}</p>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Summary cards — only show the totals relevant to the active type filter */}
+          <div className={cn(
+            "mb-6 grid gap-4",
+            showIncomeCard && showExpenseCard ? "sm:grid-cols-3" : "sm:grid-cols-1 sm:max-w-xs"
+          )}>
+            {showIncomeCard && (
+              <Card>
+                <CardContent className="flex items-center gap-4 p-5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/40">
+                    <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t("finance.totalIncome")}</p>
+                    <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">{formatDisplay(income)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {showExpenseCard && (
+              <Card>
+                <CardContent className="flex items-center gap-4 p-5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 dark:bg-red-950/40">
+                    <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t("finance.totalExpenses")}</p>
+                    <p className="text-lg font-semibold text-red-600 dark:text-red-400">{formatDisplay(expense)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {showIncomeCard && showExpenseCard && (
+              <Card>
+                <CardContent className="flex items-center gap-4 p-5">
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t("finance.netBalance")}</p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{formatDisplay(income - expense)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Transaction list */}
@@ -634,18 +645,25 @@ export default function IncomeExpensePage() {
                         {format(day, "d")}
                       </span>
                       {txs.length > 0 && (
-                        <div className="mt-1 w-full space-y-0.5">
-                          {dayIncome > 0 && (
-                            <div className="truncate rounded px-1 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400">
-                              +{formatDisplay(dayIncome)}
-                            </div>
-                          )}
-                          {dayExpense > 0 && (
-                            <div className="truncate rounded px-1 py-0.5 text-xs font-medium text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-400">
-                              -{formatDisplay(dayExpense)}
-                            </div>
-                          )}
-                        </div>
+                        <>
+                          {/* Mobile: cell is too narrow for amount text, show dot indicators instead */}
+                          <div className="mt-1 flex gap-1 sm:hidden">
+                            {dayIncome > 0 && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+                            {dayExpense > 0 && <span className="h-1.5 w-1.5 rounded-full bg-red-500" />}
+                          </div>
+                          <div className="mt-1 hidden w-full space-y-0.5 sm:block">
+                            {dayIncome > 0 && (
+                              <div className="truncate rounded px-1 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400">
+                                +{formatDisplay(dayIncome)}
+                              </div>
+                            )}
+                            {dayExpense > 0 && (
+                              <div className="truncate rounded px-1 py-0.5 text-xs font-medium text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-400">
+                                -{formatDisplay(dayExpense)}
+                              </div>
+                            )}
+                          </div>
+                        </>
                       )}
                     </button>
                   );
@@ -664,12 +682,12 @@ export default function IncomeExpensePage() {
                       {format(parseISO(selectedDate), "EEEE, d MMM yyyy")}
                     </h3>
                     <div className="mt-1 flex gap-3 text-xs">
-                      {selectedIncome > 0 && (
+                      {detailFilter !== "expense" && selectedIncome > 0 && (
                         <span className="font-medium text-emerald-600 dark:text-emerald-400">
                           +{formatDisplay(selectedIncome)}
                         </span>
                       )}
-                      {selectedExpense > 0 && (
+                      {detailFilter !== "income" && selectedExpense > 0 && (
                         <span className="font-medium text-red-600 dark:text-red-400">
                           -{formatDisplay(selectedExpense)}
                         </span>
@@ -750,7 +768,7 @@ export default function IncomeExpensePage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={t("finance.addTransactionTitle")}>
         <div className="space-y-4">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(["income", "expense", "transfer", "goals"] as const).map((type) => (
               <button
                 key={type}

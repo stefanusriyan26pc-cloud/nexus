@@ -70,7 +70,7 @@ function WalletCardBody({
               </div>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
             <IconButton icon={Pencil} label={t("common.edit")} onClick={onEdit} />
             <IconButton
               icon={Trash2}
@@ -114,7 +114,7 @@ function SortableWalletCard(props: {
         <button
           {...attributes}
           {...listeners}
-          className="absolute -left-1 -top-1 z-10 flex h-6 w-6 cursor-grab items-center justify-center rounded-md bg-white text-slate-300 shadow-sm hover:text-slate-500 active:cursor-grabbing dark:bg-slate-800 dark:text-slate-600"
+          className="absolute -left-1 -top-1 z-10 flex h-7 w-7 touch-none cursor-grab items-center justify-center rounded-md bg-white text-slate-300 shadow-sm hover:text-slate-500 active:cursor-grabbing dark:bg-slate-800 dark:text-slate-600"
         >
           <GripVertical className="h-3.5 w-3.5" />
         </button>

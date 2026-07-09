@@ -234,6 +234,8 @@
     "savingsOverview": "Savings Goals",
     "overallProgress": "Overall progress",
     "monthlyNetHint": "Net income minus expenses for the current month.",
+    "monthlyTrend": "Income vs Expenses (6 months)",
+    "balanceTrend": "Balance Trend (6 months)",
     "totalAllCurrencies": "Total All Wallets (in IDR)",
     "fetchRates": "Fetch exchange rates",
     "fetchingRates": "Fetching rates...",

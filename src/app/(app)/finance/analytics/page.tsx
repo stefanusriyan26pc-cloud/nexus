@@ -3,8 +3,9 @@
 import { FinancePageShell } from "@/components/layout/finance-page-shell";
 import { useTranslation } from "@/components/providers/i18n-provider";
 import { Card, CardContent } from "@/components/ui/card";
+import { CategoryRankBars, CumulativeBalanceChart, MonthlyTrendChart } from "@/components/finance/analytics-charts";
 import { useCurrencyDisplay } from "@/hooks/use-currency-display";
-import { computeFinanceHealth } from "@/lib/finance/analytics";
+import { computeFinanceHealth, getMonthlyTrend } from "@/lib/finance/analytics";
 import { createClient } from "@/lib/supabase/client";
 import type { FinanceTransaction, SavingsGoal, Wallet } from "@/types/database";
 import {
@@ -45,6 +46,8 @@ export default function FinanceAnalyticsPage() {
     () => computeFinanceHealth(transactions, wallets, goals),
     [transactions, wallets, goals]
   );
+  const monthlyTrend = useMemo(() => getMonthlyTrend(transactions, 6), [transactions]);
+  const totalExpense = health.topExpenseCategories.reduce((s, c) => s + c.amount, 0);
 
   const healthColor =
     health.score >= 80
@@ -63,8 +66,6 @@ export default function FinanceAnalyticsPage() {
         : health.score >= 40
           ? "stroke-amber-500"
           : "stroke-red-500";
-
-  const maxCategory = health.topExpenseCategories[0]?.amount ?? 1;
 
   return (
     <FinancePageShell>
@@ -152,6 +153,30 @@ export default function FinanceAnalyticsPage() {
               <Card>
                 <CardContent className="p-6">
                   <h3 className="mb-4 font-semibold text-slate-900 dark:text-slate-100">
+                    {t("finance.monthlyTrend")}
+                  </h3>
+                  <MonthlyTrendChart
+                    data={monthlyTrend}
+                    incomeLabel={t("finance.income")}
+                    expenseLabel={t("finance.expense")}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="mb-4 font-semibold text-slate-900 dark:text-slate-100">
+                    {t("finance.balanceTrend")}
+                  </h3>
+                  <CumulativeBalanceChart data={monthlyTrend} label={t("finance.netBalance")} />
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="mb-4 font-semibold text-slate-900 dark:text-slate-100">
                     {t("finance.topExpenses")}
                   </h3>
                   {health.topExpenseCategories.length === 0 ? (
@@ -159,24 +184,7 @@ export default function FinanceAnalyticsPage() {
                       {t("finance.noExpenseData")}
                     </p>
                   ) : (
-                    <ul className="space-y-3">
-                      {health.topExpenseCategories.map(({ category, amount }) => (
-                        <li key={category}>
-                          <div className="mb-1 flex justify-between text-sm">
-                            <span className="text-slate-700 dark:text-slate-300">{category}</span>
-                            <span className="font-medium text-slate-900 dark:text-slate-100">
-                              {formatDisplay(amount)}
-                            </span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                            <div
-                              className="h-full rounded-full bg-red-500/80"
-                              style={{ width: `${(amount / maxCategory) * 100}%` }}
-                            />
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
+                    <CategoryRankBars data={health.topExpenseCategories} total={totalExpense} />
                   )}
                 </CardContent>
               </Card>

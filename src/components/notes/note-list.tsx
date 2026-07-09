@@ -64,7 +64,7 @@ export function NoteList({
             icon={Trash2}
             label={t("common.delete")}
             onClick={() => onDelete(note.id)}
-            className="text-red-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500 dark:hover:text-red-300"
+            className="text-red-400 opacity-100 transition-opacity hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 dark:hover:text-red-300"
           />
         </div>
       ))}

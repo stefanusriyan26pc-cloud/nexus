@@ -55,7 +55,7 @@ function SortableTask({
         <button
           {...attributes}
           {...listeners}
-          className="mt-0.5 cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing dark:text-slate-600 dark:hover:text-slate-400"
+          className="mt-0.5 touch-none cursor-grab p-1 -m-1 text-slate-300 hover:text-slate-500 active:cursor-grabbing dark:text-slate-600 dark:hover:text-slate-400"
         >
           <GripVertical className="h-4 w-4" />
         </button>
