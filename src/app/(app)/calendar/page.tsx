@@ -32,7 +32,7 @@ import {
   addWeeks,
   subWeeks,
 } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, List, Plus, Search, Trash2, LayoutList } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, List, Pencil, Plus, Search, Trash2, LayoutList, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type View = "calendar" | "week" | "list";
@@ -48,6 +48,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<CalendarEvent | null>(null);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -146,11 +147,15 @@ export default function CalendarPage() {
     setModalOpen(false);
   };
 
+  const deleteEvent = async (id: string) => {
+    const supabase = createClient();
+    await supabase.from("calendar_events").delete().eq("id", id);
+    setEvents(events.filter((e) => e.id !== id));
+  };
+
   const handleDelete = async () => {
     if (!editing) return;
-    const supabase = createClient();
-    await supabase.from("calendar_events").delete().eq("id", editing.id);
-    setEvents(events.filter((e) => e.id !== editing.id));
+    await deleteEvent(editing.id);
     setModalOpen(false);
   };
 
@@ -237,7 +242,8 @@ export default function CalendarPage() {
             }
           />
         ) : view === "calendar" ? (
-          <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <div className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {format(currentDate, "MMMM yyyy")}
@@ -261,41 +267,118 @@ export default function CalendarPage() {
               {days.map((day) => {
                 const dayEvents = eventsForDay(day);
                 const inMonth = isSameMonth(day, currentDate);
+                const isSelected = selectedDay && isSameDay(day, selectedDay);
                 return (
                   <div
                     key={day.toISOString()}
+                    onClick={() => setSelectedDay(day)}
                     className={cn(
-                      "min-h-27.5 border-b border-r border-slate-100 p-2 dark:border-slate-800",
-                      !inMonth && "bg-slate-50/50 dark:bg-slate-950/50"
+                      "min-h-27.5 cursor-pointer border-b border-r border-slate-100 p-2 transition-colors hover:bg-blue-50/50 dark:border-slate-800 dark:hover:bg-blue-950/20",
+                      !inMonth && "bg-slate-50/50 dark:bg-slate-950/50",
+                      isSelected && "bg-blue-50 ring-1 ring-inset ring-blue-400 dark:bg-blue-950/40 dark:ring-blue-600"
                     )}
                   >
-                    <button
-                      onClick={() => openCreate(day)}
+                    <span
                       className={cn(
-                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs hover:bg-blue-50 dark:hover:bg-blue-950/40",
-                        isToday(day) && "bg-blue-600 font-semibold text-white hover:bg-blue-700",
+                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs",
+                        isToday(day) && "bg-blue-600 font-semibold text-white",
                         !isToday(day) && inMonth && "text-slate-700 dark:text-slate-300",
                         !inMonth && "text-slate-300 dark:text-slate-600"
                       )}
                     >
                       {format(day, "d")}
-                    </button>
+                    </span>
                     <div className="mt-1 space-y-1">
                       {dayEvents.map((event) => (
-                        <button
+                        <div
                           key={event.id}
-                          onClick={() => openEdit(event)}
                           className="block w-full truncate rounded px-1.5 py-0.5 text-left text-xs text-white"
                           style={{ backgroundColor: event.color }}
                         >
                           {event.title}
-                        </button>
+                        </div>
                       ))}
                     </div>
                   </div>
                 );
               })}
             </div>
+          </div>
+
+          {/* ── Day detail panel ──────────────────────────────────── */}
+          {selectedDay && (
+            <aside className="w-full shrink-0 rounded-xl border border-slate-200 bg-white lg:sticky lg:top-6 lg:w-80 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-start justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                    {format(selectedDay, "EEEE")}
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {format(selectedDay, "MMMM d, yyyy")}
+                  </p>
+                </div>
+                <IconButton
+                  icon={X}
+                  label={t("common.cancel")}
+                  onClick={() => setSelectedDay(null)}
+                />
+              </div>
+              <div className="max-h-120 space-y-2 overflow-y-auto p-4">
+                {eventsForDay(selectedDay).length === 0 ? (
+                  <p className="py-6 text-center text-sm text-slate-400 dark:text-slate-500">
+                    {t("calendar.noEventsDay")}
+                  </p>
+                ) : (
+                  eventsForDay(selectedDay).map((event) => (
+                    <div
+                      key={event.id}
+                      className="flex items-start gap-3 rounded-lg border border-slate-100 p-3 dark:border-slate-800"
+                    >
+                      <div className="mt-0.5 h-9 w-1 shrink-0 rounded-full" style={{ backgroundColor: event.color }} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {event.title}
+                        </p>
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                          <Clock className="h-3 w-3" />
+                          {event.all_day
+                            ? t("calendar.allDay")
+                            : `${format(parseISO(event.start_at), "h:mm a")}${event.end_at ? ` – ${format(parseISO(event.end_at), "h:mm a")}` : ""}`}
+                        </p>
+                        {event.description && (
+                          <p className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
+                            {event.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <IconButton
+                          icon={Pencil}
+                          label={t("common.edit")}
+                          onClick={() => openEdit(event)}
+                        />
+                        <IconButton
+                          icon={Trash2}
+                          label={t("common.delete")}
+                          variant="danger"
+                          onClick={() => deleteEvent(event.id)}
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => openCreate(selectedDay)}
+                >
+                  <Plus className="h-4 w-4" />
+                  {t("calendar.addEvent")}
+                </Button>
+              </div>
+            </aside>
+          )}
           </div>
         ) : view === "week" ? (
           /* ── Week view ─────────────────────────────────────────── */

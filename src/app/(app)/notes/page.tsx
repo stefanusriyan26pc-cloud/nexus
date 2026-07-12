@@ -2,6 +2,7 @@
 
 import { Header } from "@/components/layout/header";
 import { useProfile } from "@/components/layout/profile-provider";
+import { LatexContent } from "@/components/notes/latex-content";
 import { NoteGrid } from "@/components/notes/note-grid";
 import { NoteList } from "@/components/notes/note-list";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { EmptyState, ViewToggle } from "@/components/ui/view-toggle";
 import { useTranslation } from "@/components/providers/i18n-provider";
 import { sortNotes } from "@/lib/notes/sort-notes";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import type { Note, NoteFolder } from "@/types/database";
 import {
   ChevronRight, FolderOpen, LayoutGrid, List, NotebookPen,
@@ -37,6 +39,7 @@ export default function NotesPage() {
   const [content, setContent]         = useState("");
   const [formFolderId, setFormFolderId] = useState<string>("");
   const [saving, setSaving]           = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
 
   const loadAll = async () => {
     const supabase = createClient();
@@ -79,6 +82,7 @@ export default function NotesPage() {
     setTitle("");
     setContent("");
     setFormFolderId(activeFolderId && activeFolderId !== UNCATEGORIZED ? activeFolderId : "");
+    setPreviewMode(false);
     setModalOpen(true);
   };
 
@@ -87,6 +91,7 @@ export default function NotesPage() {
     setTitle(note.title);
     setContent(note.content);
     setFormFolderId(note.folder_id ?? "");
+    setPreviewMode(false);
     setModalOpen(true);
   };
 
@@ -285,13 +290,56 @@ export default function NotesPage() {
               ))}
             </Select>
           </div>
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder={t("notes.contentPlaceholder")}
-            rows={12}
-            className="resize-none border-0 px-0 focus:ring-0"
-          />
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <div className="inline-flex rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode(false)}
+                  className={cn(
+                    "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                    !previewMode
+                      ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                      : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  )}
+                >
+                  {t("notes.write")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode(true)}
+                  className={cn(
+                    "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                    previewMode
+                      ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                      : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  )}
+                >
+                  {t("notes.preview")}
+                </button>
+              </div>
+              <span className="hidden text-xs text-slate-400 sm:block dark:text-slate-500">
+                {t("notes.latexHint")}
+              </span>
+            </div>
+            {previewMode ? (
+              <div className="min-h-72 overflow-y-auto rounded-lg border border-slate-100 p-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                {content ? (
+                  <LatexContent text={content} />
+                ) : (
+                  <span className="text-slate-400 dark:text-slate-500">{t("notes.noContent")}</span>
+                )}
+              </div>
+            ) : (
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={t("notes.contentPlaceholder")}
+                rows={12}
+                className="resize-none border-0 px-0 focus:ring-0"
+              />
+            )}
+          </div>
           <div className="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
             {selected ? (
               <Button variant="danger" size="sm" onClick={() => deleteNote(selected.id)}>

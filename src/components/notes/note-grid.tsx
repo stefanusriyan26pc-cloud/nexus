@@ -1,5 +1,6 @@
 "use client";
 
+import { LatexContent } from "@/components/notes/latex-content";
 import { useTranslation } from "@/components/providers/i18n-provider";
 import type { Note } from "@/types/database";
 import { format, parseISO } from "date-fns";
@@ -46,8 +47,8 @@ export function NoteGrid({
               <Pin className="h-4 w-4" />
             </button>
           </div>
-          <p className="line-clamp-4 whitespace-pre-wrap text-sm text-slate-500 dark:text-slate-400">
-            {note.content || t("notes.noContent")}
+          <p className="line-clamp-4 text-sm text-slate-500 dark:text-slate-400">
+            {note.content ? <LatexContent text={note.content} /> : t("notes.noContent")}
           </p>
           <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
             {format(parseISO(note.updated_at), "MMM d, yyyy")}

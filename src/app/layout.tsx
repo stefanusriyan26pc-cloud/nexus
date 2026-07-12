@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   title: "Nexus — Life Management System",
   description: "Manage your tasks, notes, calendar, and finances in one place",
   icons: {
-    icon: "/nexus-logo.svg",
-    apple: "/nexus-logo.svg",
+    icon: "/nexus-mark.svg",
+    apple: "/nexus-mark-512.png",
   },
 };
 

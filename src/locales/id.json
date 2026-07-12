@@ -157,7 +157,10 @@
     "backToFolders": "Semua Folder",
     "untitled": "Tanpa Judul",
     "titlePlaceholder": "Judul catatan",
-    "contentPlaceholder": "Mulai menulis..."
+    "contentPlaceholder": "Mulai menulis...",
+    "write": "Tulis",
+    "preview": "Pratinjau",
+    "latexHint": "Mendukung rumus LaTeX: $sebaris$ dan $$blok$$"
   },
   "calendar": {
     "title": "Kalender",
@@ -177,7 +180,9 @@
     "colorLabel": "Warna",
     "weekView": "Minggu",
     "noEventsDay": "Tidak ada acara",
-    "today": "Hari ini"
+    "today": "Hari ini",
+    "addEvent": "Tambah Acara",
+    "allDay": "Sepanjang hari"
   },
   "finance": {
     "title": "Keuangan",

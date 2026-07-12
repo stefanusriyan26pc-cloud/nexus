@@ -157,7 +157,10 @@
     "backToFolders": "All Folders",
     "untitled": "Untitled",
     "titlePlaceholder": "Note title",
-    "contentPlaceholder": "Start writing..."
+    "contentPlaceholder": "Start writing...",
+    "write": "Write",
+    "preview": "Preview",
+    "latexHint": "Supports LaTeX math: $inline$ and $$block$$"
   },
   "calendar": {
     "title": "Calendar",
@@ -177,7 +180,9 @@
     "colorLabel": "Color",
     "weekView": "Week",
     "noEventsDay": "No events",
-    "today": "Today"
+    "today": "Today",
+    "addEvent": "Add Event",
+    "allDay": "All day"
   },
   "finance": {
     "title": "Finance",
