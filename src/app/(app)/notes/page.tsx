@@ -96,7 +96,7 @@ export default function NotesPage() {
       <Header title={t("notes.title")} subtitle={t("notes.subtitle")} profile={profile}>
         <Button onClick={openCreate} size="sm">
           <Plus className="h-4 w-4" />
-          {t("notes.newNote")}
+          {t("notes.newDoc")}
         </Button>
       </Header>
       <main className="flex-1 overflow-y-auto p-4 sm:p-6">

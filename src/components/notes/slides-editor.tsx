@@ -30,11 +30,12 @@ export function SlidesEditor({
   const slide = value.slides[index];
   const railRef = useRef<HTMLDivElement>(null);
 
-  // Keep the active thumbnail in view when navigating.
+  // Keep the active thumbnail in view when navigating (works for both the
+  // vertical desktop rail and the horizontal mobile filmstrip).
   useEffect(() => {
     railRef.current
       ?.querySelector(`[data-slide-index="${index}"]`)
-      ?.scrollIntoView({ block: "nearest" });
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [index]);
 
   const commit = (slides: SlideData[]) => onChange({ ...value, slides });
@@ -74,19 +75,22 @@ export function SlidesEditor({
   if (!slide) return null;
 
   return (
-    <div className="flex min-h-0 flex-1">
+    // Filmstrip below the canvas on mobile, vertical rail on the left at sm+.
+    <div className="flex min-h-0 flex-1 flex-col-reverse sm:flex-row">
       {/* ── Thumbnail rail ─────────────────────────────────────────── */}
-      <div className="flex w-36 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 sm:w-44">
+      <div
+        ref={railRef}
+        className="flex shrink-0 gap-2 overflow-x-auto border-t border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900 sm:w-44 sm:flex-col sm:overflow-x-visible sm:overflow-y-auto sm:border-r sm:border-t-0"
+      >
         <button
           onClick={addSlide}
-          className="mx-2 mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 py-1.5 text-xs font-medium text-slate-500 hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-blue-500 dark:hover:text-blue-400"
+          className="flex aspect-video w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 text-[10px] font-medium text-slate-500 hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-blue-500 dark:hover:text-blue-400 sm:aspect-auto sm:w-full sm:flex-row sm:gap-1.5 sm:py-1.5 sm:text-xs"
         >
           <Plus className="h-3.5 w-3.5" />
           {t("notes.newSlide")}
         </button>
-        <div ref={railRef} className="flex-1 space-y-2 overflow-y-auto p-2">
-          {value.slides.map((s, i) => (
-            <div key={s.id} data-slide-index={i} className="group relative">
+        {value.slides.map((s, i) => (
+            <div key={s.id} data-slide-index={i} className="group relative w-24 shrink-0 sm:w-full">
               <button
                 onClick={() => setSelected(i)}
                 className={cn(
@@ -113,7 +117,7 @@ export function SlidesEditor({
               <span className="absolute -left-0.5 top-0.5 rounded bg-white/80 px-0.5 text-[9px] tabular-nums text-slate-400 dark:bg-slate-950/80">
                 {i + 1}
               </span>
-              {/* Slide actions (hover) */}
+              {/* Slide actions — desktop hover shortcut (touch uses the toolbar) */}
               <div className="absolute right-1 top-1 hidden gap-0.5 rounded-md bg-white/95 p-0.5 shadow-sm group-hover:flex dark:bg-slate-900/95">
                 <IconButton icon={ChevronUp} label={t("notes.moveSlideUp")} onClick={() => moveSlide(i, -1)} disabled={i === 0} className="h-5 w-5 disabled:opacity-30 [&_svg]:h-3 [&_svg]:w-3" />
                 <IconButton icon={ChevronDown} label={t("notes.moveSlideDown")} onClick={() => moveSlide(i, 1)} disabled={i === value.slides.length - 1} className="h-5 w-5 disabled:opacity-30 [&_svg]:h-3 [&_svg]:w-3" />
@@ -122,17 +126,23 @@ export function SlidesEditor({
               </div>
             </div>
           ))}
-        </div>
       </div>
 
       {/* ── Canvas ─────────────────────────────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-slate-100 p-4 dark:bg-slate-950 sm:p-8">
-        <div className="mx-auto flex w-full max-w-4xl items-center justify-between pb-3">
+        <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-2 pb-3">
           <span className="text-xs tabular-nums text-slate-400 dark:text-slate-500">
             {index + 1} / {value.slides.length}
           </span>
+          {/* Slide actions (always reachable, incl. touch) */}
+          <div className="flex items-center gap-0.5">
+            <IconButton icon={ChevronUp} label={t("notes.moveSlideUp")} onClick={() => moveSlide(index, -1)} disabled={index === 0} className="h-7 w-7 disabled:opacity-30" />
+            <IconButton icon={ChevronDown} label={t("notes.moveSlideDown")} onClick={() => moveSlide(index, 1)} disabled={index === value.slides.length - 1} className="h-7 w-7 disabled:opacity-30" />
+            <IconButton icon={Copy} label={t("notes.duplicateSlide")} onClick={() => duplicateSlide(index)} className="h-7 w-7" />
+            <IconButton icon={Trash2} label={t("notes.deleteSlide")} onClick={() => deleteSlide(index)} className="h-7 w-7 text-red-400 hover:text-red-500" />
+          </div>
           {/* Layout switcher */}
-          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs dark:border-slate-700 dark:bg-slate-900">
+          <div className="ml-auto inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs dark:border-slate-700 dark:bg-slate-900">
             {(["title", "content"] as SlideLayout[]).map((layout) => (
               <button
                 key={layout}

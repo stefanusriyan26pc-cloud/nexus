@@ -47,7 +47,6 @@ import {
   List,
   ListTree,
   PanelLeft,
-  PanelLeftClose,
   PencilLine,
   Pin,
   Play,
@@ -738,20 +737,12 @@ function NoteEditor({ noteId }: { noteId: string }) {
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 {t("notes.title")}
               </span>
-              <span className="flex items-center gap-0.5">
-                <IconButton
-                  icon={Plus}
-                  label={t("notes.newNote")}
-                  onClick={() => router.push("/notes/new")}
-                  className="h-6 w-6"
-                />
-                <IconButton
-                  icon={PanelLeftClose}
-                  label={t("notes.toggleNoteList")}
-                  onClick={toggleSidebar}
-                  className="h-6 w-6"
-                />
-              </span>
+              <IconButton
+                icon={Plus}
+                label={t("notes.newDoc")}
+                onClick={() => router.push("/notes/new")}
+                className="h-6 w-6"
+              />
             </div>
             <div className="flex-1 overflow-y-auto px-2 pb-2">
               {notesList.map((n) => {

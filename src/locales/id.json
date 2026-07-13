@@ -247,7 +247,8 @@
     "addCol": "Kolom",
     "removeCol": "Kolom",
     "latexErrorLine": "baris {n}",
-    "goToLine": "Ke baris {n}"
+    "goToLine": "Ke baris {n}",
+    "newDoc": "Dokumen Baru"
   },
   "calendar": {
     "title": "Kalender",

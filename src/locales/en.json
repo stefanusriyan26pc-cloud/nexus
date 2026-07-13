@@ -247,7 +247,8 @@
     "addCol": "Column",
     "removeCol": "Column",
     "latexErrorLine": "line {n}",
-    "goToLine": "Go to line {n}"
+    "goToLine": "Go to line {n}",
+    "newDoc": "New document"
   },
   "calendar": {
     "title": "Calendar",
