@@ -36,6 +36,8 @@ export interface Note {
   is_pinned: boolean;
   category: string;
   folder_id: string | null;
+  /** null = legacy note, editor type is inferred from the content */
+  note_type: "simple" | "document" | null;
   created_at: string;
   updated_at: string;
 }

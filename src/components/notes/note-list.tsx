@@ -6,6 +6,8 @@ import type { Note } from "@/types/database";
 import { format, parseISO } from "date-fns";
 import { Pin, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NoteKindTile } from "@/components/notes/note-kind";
+import { getNotePreviewText } from "@/lib/notes/note-type";
 
 export function NoteList({
   notes,
@@ -47,12 +49,13 @@ export function NoteList({
             onClick={() => onEdit(note)}
             className="flex min-w-0 flex-1 items-center gap-4 text-left"
           >
+            <NoteKindTile note={note} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
                 {note.title}
               </p>
               <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
-                {note.content || t("notes.noContent")}
+                {getNotePreviewText(note) || t("notes.noContent")}
               </p>
             </div>
             <span className="hidden shrink-0 text-xs text-slate-400 dark:text-slate-500 sm:block">

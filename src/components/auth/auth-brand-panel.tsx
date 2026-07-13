@@ -2,12 +2,13 @@
 
 import { NexumLogo } from "@/components/brand/nexum-logo";
 import { useTranslation } from "@/components/providers/i18n-provider";
-import { CalendarDays, CheckSquare, Wallet } from "lucide-react";
+import { CalendarDays, CheckSquare, LayoutGrid, Wallet } from "lucide-react";
 
 export function AuthBrandPanel() {
   const { t } = useTranslation();
 
   const features = [
+    { icon: LayoutGrid, titleKey: "auth.featureWorkspace", descKey: "auth.featureWorkspaceDesc" },
     { icon: CheckSquare, titleKey: "auth.featureTasks", descKey: "auth.featureTasksDesc" },
     { icon: CalendarDays, titleKey: "auth.featureSchedule", descKey: "auth.featureScheduleDesc" },
     { icon: Wallet, titleKey: "auth.featureFinance", descKey: "auth.featureFinanceDesc" },
@@ -47,7 +48,7 @@ export function AuthBrandPanel() {
           {t("auth.brandSubtext")}
         </p>
 
-        <div className="mt-10 space-y-3">
+        <div className="mt-9 space-y-2.5">
           {features.map(({ icon: Icon, titleKey, descKey }) => (
             <div
               key={titleKey}
@@ -67,7 +68,7 @@ export function AuthBrandPanel() {
 
       <div className="relative z-10 p-10 xl:p-14">
         <p className="text-xs text-slate-500">
-          © {new Date().getFullYear()} Nexum. {t("auth.brandCopyright")}
+          © {new Date().getFullYear()} Nexus. {t("auth.brandCopyright")}
         </p>
       </div>
     </div>

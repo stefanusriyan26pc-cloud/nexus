@@ -109,6 +109,10 @@ export default function IncomeExpensePage() {
   );
 
   const categories = useMemo(() => getTransactionCategories(transactions), [transactions]);
+  const walletNames = useMemo(
+    () => new Map(wallets.map((w) => [w.id, w.name])),
+    [wallets]
+  );
   const income = sumByType(filteredTransactions, "income");
   const expense = sumByType(filteredTransactions, "expense");
   const showIncomeCard = typeFilter !== "expense";
@@ -545,6 +549,7 @@ export default function IncomeExpensePage() {
                             {" · "}
                             {format(parseISO(tx.created_at), "h:mm a")}
                             {tx.category && ` · ${tx.category}`}
+                            {tx.wallet_id && walletNames.has(tx.wallet_id) && ` · ${walletNames.get(tx.wallet_id)}`}
                           </p>
                         </div>
                       </div>
@@ -747,8 +752,12 @@ export default function IncomeExpensePage() {
                         <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
                           {tx.description || tx.category || (tx.type === "income" ? t("finance.income") : t("finance.expense"))}
                         </p>
-                        {tx.category && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{tx.category}</p>
+                        {(tx.category || (tx.wallet_id && walletNames.has(tx.wallet_id))) && (
+                          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                            {[tx.category, tx.wallet_id ? walletNames.get(tx.wallet_id) : null]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
                         )}
                       </div>
                       <span className={cn(

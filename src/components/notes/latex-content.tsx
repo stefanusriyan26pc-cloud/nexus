@@ -9,22 +9,44 @@ type Segment =
   | { type: "text"; value: string }
   | { type: "math"; value: string; display: boolean };
 
-// $$...$$ renders as a block equation, $...$ renders inline (no newlines inside).
-const MATH_PATTERN = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
+// $$...$$ and \[...\] render as block equations, $...$ and \(...\) inline.
+const MATH_PATTERN =
+  /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$/g;
+
+export type MathMatch = { start: number; end: number; value: string; display: boolean };
+
+export function findMathMatches(text: string): MathMatch[] {
+  const matches: MathMatch[] = [];
+  for (const match of text.matchAll(MATH_PATTERN)) {
+    const [raw, block, bracket, paren, inline] = match;
+    if (inline !== undefined) {
+      // Pandoc-style guard so currency like "$100 dan $200" stays plain text:
+      // the content must hug both delimiters and the closing $ must not be
+      // immediately followed by a digit.
+      const next = text[match.index + raw.length];
+      if (/^\s/.test(inline) || /\s$/.test(inline) || (next !== undefined && /\d/.test(next))) {
+        continue;
+      }
+    }
+    matches.push({
+      start: match.index,
+      end: match.index + raw.length,
+      value: (block ?? bracket ?? paren ?? inline)!,
+      display: block !== undefined || bracket !== undefined,
+    });
+  }
+  return matches;
+}
 
 function parseSegments(text: string): Segment[] {
   const segments: Segment[] = [];
   let lastIndex = 0;
-  for (const match of text.matchAll(MATH_PATTERN)) {
-    if (match.index > lastIndex) {
-      segments.push({ type: "text", value: text.slice(lastIndex, match.index) });
+  for (const match of findMathMatches(text)) {
+    if (match.start > lastIndex) {
+      segments.push({ type: "text", value: text.slice(lastIndex, match.start) });
     }
-    if (match[1] !== undefined) {
-      segments.push({ type: "math", value: match[1], display: true });
-    } else {
-      segments.push({ type: "math", value: match[2], display: false });
-    }
-    lastIndex = match.index + match[0].length;
+    segments.push({ type: "math", value: match.value, display: match.display });
+    lastIndex = match.end;
   }
   if (lastIndex < text.length) {
     segments.push({ type: "text", value: text.slice(lastIndex) });
@@ -33,8 +55,7 @@ function parseSegments(text: string): Segment[] {
 }
 
 export function hasLatex(text: string): boolean {
-  MATH_PATTERN.lastIndex = 0;
-  return MATH_PATTERN.test(text);
+  return findMathMatches(text).length > 0;
 }
 
 export function LatexContent({ text, className }: { text: string; className?: string }) {

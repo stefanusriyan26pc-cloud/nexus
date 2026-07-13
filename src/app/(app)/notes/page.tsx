@@ -2,22 +2,20 @@
 
 import { Header } from "@/components/layout/header";
 import { useProfile } from "@/components/layout/profile-provider";
-import { LatexContent } from "@/components/notes/latex-content";
 import { NoteGrid } from "@/components/notes/note-grid";
 import { NoteList } from "@/components/notes/note-list";
 import { Button } from "@/components/ui/button";
-import { Input, Textarea, Select } from "@/components/ui/input";
-import { Modal } from "@/components/ui/modal";
+import { Input } from "@/components/ui/input";
 import { EmptyState, ViewToggle } from "@/components/ui/view-toggle";
 import { useTranslation } from "@/components/providers/i18n-provider";
 import { sortNotes } from "@/lib/notes/sort-notes";
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
 import type { Note, NoteFolder } from "@/types/database";
 import {
   ChevronRight, FolderOpen, LayoutGrid, List, NotebookPen,
-  Plus, Search, Trash2,
+  Plus, Search,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 type View = "grid" | "list" | "folders";
@@ -27,19 +25,13 @@ const UNCATEGORIZED = "__uncategorized__";
 export default function NotesPage() {
   const profile = useProfile();
   const { t } = useTranslation();
+  const router = useRouter();
   const [notes, setNotes]             = useState<Note[]>([]);
   const [folders, setFolders]         = useState<NoteFolder[]>([]);
   const [view, setView]               = useState<View>("grid");
   const [search, setSearch]           = useState("");
   const [activeFolderId, setActiveFolderId] = useState<string>("");
-  const [selected, setSelected]       = useState<Note | null>(null);
   const [loading, setLoading]         = useState(true);
-  const [modalOpen, setModalOpen]     = useState(false);
-  const [title, setTitle]             = useState("");
-  const [content, setContent]         = useState("");
-  const [formFolderId, setFormFolderId] = useState<string>("");
-  const [saving, setSaving]           = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
 
   const loadAll = async () => {
     const supabase = createClient();
@@ -77,47 +69,8 @@ export default function NotesPage() {
     ? t("notes.uncategorized")
     : folders.find((f) => f.id === activeFolderId)?.name ?? "";
 
-  const openCreate = () => {
-    setSelected(null);
-    setTitle("");
-    setContent("");
-    setFormFolderId(activeFolderId && activeFolderId !== UNCATEGORIZED ? activeFolderId : "");
-    setPreviewMode(false);
-    setModalOpen(true);
-  };
-
-  const openEdit = (note: Note) => {
-    setSelected(note);
-    setTitle(note.title);
-    setContent(note.content);
-    setFormFolderId(note.folder_id ?? "");
-    setPreviewMode(false);
-    setModalOpen(true);
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (selected) {
-      const { data } = await supabase
-        .from("notes")
-        .update({ title: title || t("notes.untitled"), content, folder_id: formFolderId || null })
-        .eq("id", selected.id)
-        .select()
-        .single();
-      if (data) setNotes(sortNotes(notes.map((n) => (n.id === data.id ? data : n))));
-    } else {
-      const { data } = await supabase
-        .from("notes")
-        .insert({ user_id: user!.id, title: title || t("notes.untitled"), content, folder_id: formFolderId || null })
-        .select()
-        .single();
-      if (data) setNotes(sortNotes([data, ...notes]));
-    }
-    setSaving(false);
-    setModalOpen(false);
-  };
+  const openCreate = () => router.push("/notes/new");
+  const openEdit = (note: Note) => router.push(`/notes/${note.id}`);
 
   const togglePin = async (note: Note) => {
     const supabase = createClient();
@@ -134,7 +87,6 @@ export default function NotesPage() {
     const supabase = createClient();
     await supabase.from("notes").delete().eq("id", id);
     setNotes(notes.filter((n) => n.id !== id));
-    setModalOpen(false);
   };
 
   const viewInFolder = view !== "folders" || activeFolderId !== "";
@@ -261,100 +213,11 @@ export default function NotesPage() {
         ) : filtered.length === 0 ? (
           <p className="py-12 text-center text-sm text-slate-500 dark:text-slate-400">{t("common.noData")}</p>
         ) : view === "grid" || (view === "folders" && activeFolderId) ? (
-          <NoteGrid notes={filtered} onEdit={openEdit} onTogglePin={togglePin} />
+          <NoteGrid notes={filtered} onEdit={openEdit} onTogglePin={togglePin} onDelete={deleteNote} />
         ) : (
           <NoteList notes={filtered} onEdit={openEdit} onTogglePin={togglePin} onDelete={deleteNote} />
         )}
       </main>
-
-      {/* ── Note Modal ─────────────────────────────────────────────── */}
-      <Modal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={selected ? t("notes.editNote") : t("notes.newNote")}
-        className="max-w-2xl"
-      >
-        <div className="space-y-4">
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t("notes.titlePlaceholder")}
-            className="border-0 px-0 text-lg font-semibold focus:ring-0"
-          />
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-500">{t("notes.categoryLabel")}</label>
-            <Select value={formFolderId} onChange={(e) => setFormFolderId(e.target.value)}>
-              <option value="">{t("notes.uncategorized")}</option>
-              {folders.map((f) => (
-                <option key={f.id} value={f.id}>{f.name}</option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <div className="inline-flex rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setPreviewMode(false)}
-                  className={cn(
-                    "rounded-md px-3 py-1 text-xs font-medium transition-colors",
-                    !previewMode
-                      ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
-                      : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                  )}
-                >
-                  {t("notes.write")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewMode(true)}
-                  className={cn(
-                    "rounded-md px-3 py-1 text-xs font-medium transition-colors",
-                    previewMode
-                      ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
-                      : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                  )}
-                >
-                  {t("notes.preview")}
-                </button>
-              </div>
-              <span className="hidden text-xs text-slate-400 sm:block dark:text-slate-500">
-                {t("notes.latexHint")}
-              </span>
-            </div>
-            {previewMode ? (
-              <div className="min-h-72 overflow-y-auto rounded-lg border border-slate-100 p-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
-                {content ? (
-                  <LatexContent text={content} />
-                ) : (
-                  <span className="text-slate-400 dark:text-slate-500">{t("notes.noContent")}</span>
-                )}
-              </div>
-            ) : (
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder={t("notes.contentPlaceholder")}
-                rows={12}
-                className="resize-none border-0 px-0 focus:ring-0"
-              />
-            )}
-          </div>
-          <div className="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
-            {selected ? (
-              <Button variant="danger" size="sm" onClick={() => deleteNote(selected.id)}>
-                <Trash2 className="h-4 w-4" /> {t("common.delete")}
-              </Button>
-            ) : <span />}
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setModalOpen(false)}>{t("common.cancel")}</Button>
-              <Button onClick={handleSave} disabled={saving || !title.trim()}>
-                {saving ? t("common.saving") : t("common.save")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Modal>
     </>
   );
 }
